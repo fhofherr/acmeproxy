@@ -1,0 +1,25 @@
+@startuml
+
+cloud internet {
+    component acme_ca
+    component global_dns
+    cloud cloud_provider {
+        node public_acmeproxy
+    }
+}
+
+frame private_network {
+    component firewall
+    component local_dns
+    node local_machine  {
+        component local_acmeproxy
+    }
+    agent user
+}
+
+local_machine -- local_dns: resovle hostnames
+local_machine -- firewall: access internet
+local_dns -- firewall: resolve upstream DNS queries
+firewall --- internet
+
+@enduml
