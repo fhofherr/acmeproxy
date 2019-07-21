@@ -8,4 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+* A `github.com/fhofherr/acmeproxy/pkg/acmetest` package containing
+  a type `Pebble`. It represents an instance of the
+  [pebble](https://github.com/letsencrypt/pebble) test server.
+
 [Unreleased]: https://github.com/fhofherr/leproxy
