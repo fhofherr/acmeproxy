@@ -1,0 +1,32 @@
+# docker-compose file for a local acmeproxy test environement.
+#
+# Initially copied from the pebble docker-compose.yaml file at
+# https://github.com/letsencrypt/pebble/blob/master/docker-compose.yml
+---
+version: '3'
+services:
+  pebble:
+    image: letsencrypt/pebble:v2.1.0
+    command: pebble -config /test/config/pebble-config.json -strict -dnsserver 10.30.50.3:8053
+    ports:
+      - 14000:14000  # HTTPS ACME API
+      - 15000:15000  # HTTPS Management API
+    networks:
+      acmeproxytest:
+        ipv4_address: 10.30.50.2
+  challtestsrv:
+    image: letsencrypt/pebble-challtestsrv:v2.1.0
+    command: pebble-challtestsrv -defaultIPv6 "" -defaultIPv4 10.30.50.3
+    ports:
+      - 8055:8055  # HTTP Management API
+    networks:
+      acmeproxytest:
+        ipv4_address: 10.30.50.3
+
+networks:
+  acmeproxytest:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.30.50.0/24

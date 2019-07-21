@@ -114,6 +114,33 @@ TODO: give overview over usage
 
 TODO: describe steps necessary to get a development environment going
 
+### Testing
+
+Some of `acmeproxy`'s tests require a running instance of
+[pebble](https://github.com/letsencrypt/pebble) and will be skipped if
+such an instance is not configured.
+
+The easiest way to start such an instance is to use the
+`docker-compose.dev.yml` file in this repository:
+
+```sh
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+After the test environment is started the following environment variable
+has to be set:
+
+```sh
+export ACMEPROXY_PEBBLE_HOST=localhost
+```
+
+To shut down the test environment issue:
+
+```sh
+docker-compose -f docker-compose.dev.yml down
+```
+
+
 ## License
 
 Copyright © 2019 Ferdinand Hofherr
