@@ -121,10 +121,10 @@ Some of `acmeproxy`'s tests require a running instance of
 such an instance is not configured.
 
 The easiest way to start such an instance is to use the
-`docker-compose.dev.yml` file in this repository:
+local development environment:
 
 ```sh
-docker-compose -f docker-compose.dev.yml up -d
+make dev-env-up
 ```
 
 After the test environment is started the following environment variable
@@ -137,9 +137,8 @@ export ACMEPROXY_PEBBLE_HOST=localhost
 To shut down the test environment issue:
 
 ```sh
-docker-compose -f docker-compose.dev.yml down
+make dev-env-down
 ```
-
 
 ## License
 
