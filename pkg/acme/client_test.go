@@ -21,16 +21,18 @@ func TestObtainCertificate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	domain := "www.example.com"
 	certReq := acme.CertificateRequest{
 		Email:         "john.doe@example.com",
-		Domains:       []string{"www.example.com"},
+		Domains:       []string{domain},
 		Bundle:        true,
 		CreateAccount: true,
 		Key:           key,
 	}
 	certResp, err := acmeClient.ObtainCertificate(certReq)
 	if assert.NoError(t, err) {
-		// TODO test if certificate is valid
-		assert.NotEmpty(t, certResp.Certificate)
+		assert.NotEmpty(t, certResp.URL)
+		acmetest.AssertCertificateValid(t, domain, certResp.IssuerCertificate, certResp.Certificate)
+		pebble.AssertIssuedByPebble(t, domain, certResp.Certificate)
 	}
 }
