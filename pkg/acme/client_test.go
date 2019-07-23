@@ -1,6 +1,7 @@
 package acme_test
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -23,17 +24,13 @@ func TestObtainCertificate(t *testing.T) {
 	server := acmetest.NewChallengeServer(t, acmeClient.ChallengeHandler, 5002)
 	defer server.Close()
 
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
 	domain := "www.example.com"
 	certReq := acme.CertificateRequest{
 		Email:         "john.doe@example.com",
 		Domains:       []string{domain},
 		Bundle:        true,
 		CreateAccount: true,
-		Key:           key,
+		Key:           newPrivateKey(t),
 	}
 	certResp, err := acmeClient.ObtainCertificate(certReq)
 	if assert.NoError(t, err) {
@@ -41,4 +38,12 @@ func TestObtainCertificate(t *testing.T) {
 		acmetest.AssertCertificateValid(t, domain, certResp.IssuerCertificate, certResp.Certificate)
 		pebble.AssertIssuedByPebble(t, domain, certResp.Certificate)
 	}
+}
+
+func newPrivateKey(t *testing.T) crypto.PrivateKey {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return key
 }
