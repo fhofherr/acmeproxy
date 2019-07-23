@@ -16,7 +16,13 @@ func TestObtainCertificate(t *testing.T) {
 	reset := acmetest.SetLegoCACertificates(t, pebble.TestCert)
 	defer reset()
 
-	acmeClient := acme.Client{DirectoryURL: pebble.DirectoryURL()}
+	acmeClient := acme.Client{
+		DirectoryURL:     pebble.DirectoryURL(),
+		ChallengeHandler: acme.NewHTTP01Handler(),
+	}
+	server := acmetest.NewChallengeServer(t, acmeClient.ChallengeHandler, 5002)
+	defer server.Close()
+
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
