@@ -18,6 +18,7 @@ const challengeServerPort = 5002
 func TestObtainCertificate(t *testing.T) {
 	fx, tearDown := newClientTestFixture(t)
 	defer tearDown()
+	privateKey := newPrivateKey(t)
 
 	tests := []struct {
 		acme.CertificateRequest
@@ -26,10 +27,20 @@ func TestObtainCertificate(t *testing.T) {
 		{
 			name: "obtain certificate without account",
 			CertificateRequest: acme.CertificateRequest{
-				Email:   "john.doe@example.com",
-				Domains: []string{"www.example.com"},
-				Bundle:  true,
-				Key:     newPrivateKey(t),
+				Email:      "john.doe@example.com",
+				Domains:    []string{"www.example.com"},
+				Bundle:     true,
+				PrivateKey: privateKey,
+			},
+		},
+		{
+			name: "obtain certificate with pre-existing account",
+			CertificateRequest: acme.CertificateRequest{
+				Email:      "jane.doe@example.com",
+				AccountURL: fx.Pebble.CreateAccount(t, "jane.doe@example.com", privateKey),
+				Domains:    []string{"www.example.com"},
+				Bundle:     true,
+				PrivateKey: privateKey,
 			},
 		},
 	}
@@ -43,6 +54,7 @@ func TestObtainCertificate(t *testing.T) {
 				return
 			}
 			assert.NotEmpty(t, certResp.URL)
+			assert.NotEmpty(t, certResp.AccountURL)
 			for _, domain := range certReq.Domains {
 				acmetest.AssertCertificateValid(t, domain, certResp.IssuerCertificate, certResp.Certificate)
 				fx.Pebble.AssertIssuedByPebble(t, domain, certResp.Certificate)
