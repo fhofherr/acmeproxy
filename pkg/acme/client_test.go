@@ -48,14 +48,13 @@ func TestObtainCertificate(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			certReq := tt.CertificateRequest
-			certResp, err := fx.Client.ObtainCertificate(certReq)
+			certResp, err := fx.Client.ObtainCertificate(tt.CertificateRequest)
 			if !assert.NoError(t, err) {
 				return
 			}
 			assert.NotEmpty(t, certResp.URL)
 			assert.NotEmpty(t, certResp.AccountURL)
-			for _, domain := range certReq.Domains {
+			for _, domain := range tt.CertificateRequest.Domains {
 				acmetest.AssertCertificateValid(t, domain, certResp.IssuerCertificate, certResp.Certificate)
 				fx.Pebble.AssertIssuedByPebble(t, domain, certResp.Certificate)
 			}
