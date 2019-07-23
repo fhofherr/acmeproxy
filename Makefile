@@ -4,6 +4,8 @@
 .DEFAULT_GOAL := all
 
 GO := go
+GOLINT := golint
+GOLANGCI_LINT := golangci-lint
 DOCKER_COMPOSE := docker-compose
 
 HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
@@ -22,6 +24,11 @@ coverageHTML: test ## Create HTML coverage report
 .PHONY: race
 race: ## Execute all tests with race detector enabled
 	$(GO) test -race ./...
+
+.PHONY: lint
+lint:
+	$(GOLANGCI_LINT) run
+	$(GOLINT) ./...
 
 .PHONY: documentation
 documentation: ## Update the documentation

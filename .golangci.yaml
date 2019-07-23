@@ -1,0 +1,21 @@
+---
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  misspell:
+    locale: "US"
+  lll:
+    line-length: 120
+    tab-width: 4
+
+linters:
+  enable-all: true
+  disable:
+    - stylecheck
+    - dupl
+    - maligned
+    - depguard
+    - scopelint
+    - gochecknoinits
+    - gochecknoglobals
+    - golint
