@@ -87,9 +87,9 @@ func (r CertificateRequest) newACMEUser() *acme.User {
 // CertificateInfo represents an ACME certificate along with its meta
 // information.
 type CertificateInfo struct {
-	URL               string
-	AccountURL        string
-	Certificate       []byte
-	PrivateKey        []byte
-	IssuerCertificate []byte
+	URL               string // URL of the certificate.
+	AccountURL        string // URL of the certificate owner's account.
+	Certificate       []byte // The actual certificate.
+	PrivateKey        []byte // Private key used to generate the certificate.
+	IssuerCertificate []byte // Certificate of the issuer of the certificate.
 }
