@@ -15,7 +15,6 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acme"
 	"github.com/go-acme/lego/lego"
-	"github.com/go-acme/lego/registration"
 )
 
 // Pebble represents an instance of the pebble test server used for testing
@@ -87,12 +86,10 @@ func (p *Pebble) CreateAccount(t *testing.T, email string, key crypto.PrivateKey
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts := registration.RegisterOptions{TermsOfServiceAgreed: true}
-	res, err := client.Registration.Register(opts)
-	if err != nil {
+	if err := u.Register(client); err != nil {
 		t.Fatal(err)
 	}
-	return res.URI
+	return u.Registration.URI
 }
 
 func (p *Pebble) loadCACert(t *testing.T, certType string) []byte {
