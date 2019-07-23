@@ -42,14 +42,12 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	}
 	// TODO test what happens if we don't create an account. Do we need to save
 	//      the registration.
-	if req.CreateAccount {
-		opts := registration.RegisterOptions{TermsOfServiceAgreed: true}
-		reg, err := legoClient.Registration.Register(opts)
-		if err != nil {
-			return nil, errors.Wrapf(err, "register User %s", req.Email)
-		}
-		u.Registration = reg
+	opts := registration.RegisterOptions{TermsOfServiceAgreed: true}
+	reg, err := legoClient.Registration.Register(opts)
+	if err != nil {
+		return nil, errors.Wrapf(err, "register User %s", req.Email)
 	}
+	u.Registration = reg
 	obtReq := certificate.ObtainRequest{
 		Domains: req.Domains,
 		Bundle:  req.Bundle,
@@ -69,11 +67,10 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 // CertificateRequest represents a request by an ACME protocol User to obtain
 // or renew a certificate.
 type CertificateRequest struct {
-	Email         string            // Email address of the person responsible for the domains.
-	Key           crypto.PrivateKey // Private key for the certificate signing request.
-	Domains       []string          // Domains for which a certificate is requested.
-	CreateAccount bool              // Set to true if Email is used for the first time and requires a new account.
-	Bundle        bool              // Bundle issuer certificate with issued certificate.
+	Email   string            // Email address of the person responsible for the domains.
+	Key     crypto.PrivateKey // Private key for the certificate signing request.
+	Domains []string          // Domains for which a certificate is requested.
+	Bundle  bool              // Bundle issuer certificate with issued certificate.
 }
 
 // CertificateInfo represents an ACME certificate along with its meta

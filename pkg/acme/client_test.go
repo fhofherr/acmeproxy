@@ -19,19 +19,35 @@ func TestObtainCertificate(t *testing.T) {
 	fx, tearDown := newClientTestFixture(t)
 	defer tearDown()
 
-	domain := "www.example.com"
-	certReq := acme.CertificateRequest{
-		Email:         "john.doe@example.com",
-		Domains:       []string{domain},
-		Bundle:        true,
-		CreateAccount: true,
-		Key:           newPrivateKey(t),
+	tests := []struct {
+		acme.CertificateRequest
+		name string
+	}{
+		{
+			name: "obtain certificate without account",
+			CertificateRequest: acme.CertificateRequest{
+				Email:   "john.doe@example.com",
+				Domains: []string{"www.example.com"},
+				Bundle:  true,
+				Key:     newPrivateKey(t),
+			},
+		},
 	}
-	certResp, err := fx.Client.ObtainCertificate(certReq)
-	if assert.NoError(t, err) {
-		assert.NotEmpty(t, certResp.URL)
-		acmetest.AssertCertificateValid(t, domain, certResp.IssuerCertificate, certResp.Certificate)
-		fx.Pebble.AssertIssuedByPebble(t, domain, certResp.Certificate)
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			certReq := tt.CertificateRequest
+			certResp, err := fx.Client.ObtainCertificate(certReq)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.NotEmpty(t, certResp.URL)
+			for _, domain := range certReq.Domains {
+				acmetest.AssertCertificateValid(t, domain, certResp.IssuerCertificate, certResp.Certificate)
+				fx.Pebble.AssertIssuedByPebble(t, domain, certResp.Certificate)
+			}
+		})
 	}
 }
 
