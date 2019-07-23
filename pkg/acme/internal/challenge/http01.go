@@ -1,37 +1,37 @@
-package acme
+package challenge
 
 import (
 	"fmt"
 	"sync"
 )
 
-// HTTP01Handler is a custom challenge provider for the HTTP01 challenge.
+// HTTP01Solver is a custom challenge provider for the HTTP01 challenge.
 //
 // In contrast to the default HTTP01 challenge provider shipped with lego it
 // does not start a web-server but instead provides a handle challenge method
 // which can be used in an http.Handler or http.HandlerFunc.
 //
-// HTTP01Handler is safe for concurrent access by multiple Go routines.
+// HTTP01Solver is safe for concurrent access by multiple Go routines.
 //
 // The methods Present and CleanUp are intended for use by lego and should not
 // be called directly.
-type HTTP01Handler struct {
+type HTTP01Solver struct {
 	challenges map[string]string
 	mu         *sync.Mutex
 }
 
-// NewHTTP01Handler creates and initializes an HTTP01Handler.
-func NewHTTP01Handler() *HTTP01Handler {
-	return &HTTP01Handler{
+// NewHTTP01Solver creates and initializes an HTTP01Solver.
+func NewHTTP01Solver() *HTTP01Solver {
+	return &HTTP01Solver{
 		challenges: make(map[string]string),
 		mu:         &sync.Mutex{},
 	}
 }
 
-// Present registers a solution for a HTTP01 challenge with the HTTP01Handler.
+// Present registers a solution for a HTTP01 challenge with the HTTP01Solver.
 //
 // This method is intended to be used by lego and should not be called directly.
-func (p *HTTP01Handler) Present(domain, token, keyAuth string) error {
+func (p *HTTP01Solver) Present(domain, token, keyAuth string) error {
 	k := challengeKey(domain, token)
 
 	p.mu.Lock()
@@ -41,10 +41,10 @@ func (p *HTTP01Handler) Present(domain, token, keyAuth string) error {
 	return nil
 }
 
-// CleanUp removes the solution for a HTTP01 challenge from the HTTP01Handler.
+// CleanUp removes the solution for a HTTP01 challenge from the HTTP01Solver.
 //
 // This method is intended to be used by lego and should not be called directly.
-func (p *HTTP01Handler) CleanUp(domain, token, keyAuth string) error {
+func (p *HTTP01Solver) CleanUp(domain, token, keyAuth string) error {
 	k := challengeKey(domain, token)
 
 	p.mu.Lock()
@@ -59,7 +59,7 @@ func (p *HTTP01Handler) CleanUp(domain, token, keyAuth string) error {
 //
 // If the key authorization could not be found an instance of ErrChallengeFailed
 // is returned as error.
-func (p *HTTP01Handler) HandleChallenge(domain, token string) (string, error) {
+func (p *HTTP01Solver) HandleChallenge(domain, token string) (string, error) {
 	k := challengeKey(domain, token)
 
 	p.mu.Lock()
@@ -72,7 +72,7 @@ func (p *HTTP01Handler) HandleChallenge(domain, token string) (string, error) {
 	return keyAuth, nil
 }
 
-// ErrChallengeFailed signals that the HTTP01Handler could not solve the challenge.
+// ErrChallengeFailed signals that the HTTP01Solver could not solve the challenge.
 type ErrChallengeFailed struct {
 	Domain string
 	Token  string

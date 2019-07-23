@@ -1,4 +1,4 @@
-package acme_test
+package challenge_test
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme"
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func TestHTTP01Handler_GetKeyAuthForTokenAndDomain(t *testing.T) {
 	token := "token"
 	keyAuth := "keyAuth"
 
-	handler := acme.NewHTTP01Handler()
+	handler := challenge.NewHTTP01Solver()
 	err := handler.Present(domain, token, keyAuth)
 	assert.NoError(t, err)
 	actualKeyAuth, err := handler.HandleChallenge(domain, token)
@@ -28,10 +28,10 @@ func TestHTTP01Handler_ReturnErrorOnMissingKeyAuth(t *testing.T) {
 	domain := "www.example.com"
 	token := "token"
 
-	handler := acme.NewHTTP01Handler()
+	handler := challenge.NewHTTP01Solver()
 	_, err := handler.HandleChallenge(domain, token)
 	assert.Error(t, err)
-	assert.Equal(t, acme.ErrChallengeFailed{Domain: domain, Token: token}, err)
+	assert.Equal(t, challenge.ErrChallengeFailed{Domain: domain, Token: token}, err)
 }
 
 func TestHTTP01Handler_CleanUpAfterSuccessfulChallenge(t *testing.T) {
@@ -39,7 +39,7 @@ func TestHTTP01Handler_CleanUpAfterSuccessfulChallenge(t *testing.T) {
 	token := "token"
 	keyAuth := "keyAuth"
 
-	handler := acme.NewHTTP01Handler()
+	handler := challenge.NewHTTP01Solver()
 	err := handler.Present(domain, token, keyAuth)
 	assert.NoError(t, err)
 
@@ -47,11 +47,11 @@ func TestHTTP01Handler_CleanUpAfterSuccessfulChallenge(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = handler.HandleChallenge(domain, token)
-	assert.Equal(t, acme.ErrChallengeFailed{Domain: domain, Token: token}, err)
+	assert.Equal(t, challenge.ErrChallengeFailed{Domain: domain, Token: token}, err)
 }
 
 func TestHTTP01Handler_ConcurrentAccess(t *testing.T) {
-	handler := acme.NewHTTP01Handler()
+	handler := challenge.NewHTTP01Solver()
 	n := 10
 	maxSleep := int64(31)
 	wg := sync.WaitGroup{}

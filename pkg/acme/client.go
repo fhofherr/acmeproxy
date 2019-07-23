@@ -3,6 +3,7 @@ package acme
 import (
 	"crypto"
 
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
 	"github.com/go-acme/lego/certcrypto"
 	"github.com/go-acme/lego/certificate"
 	"github.com/go-acme/lego/lego"
@@ -13,8 +14,8 @@ import (
 // Client is an ACME protocol client capable of obtaining and renewing
 // certificates.
 type Client struct {
-	DirectoryURL     string
-	ChallengeHandler *HTTP01Handler
+	DirectoryURL string
+	HTTP01Solver *challenge.HTTP01Solver
 }
 
 // ObtainCertificate obtains a new certificate from the remote ACME server.
@@ -34,7 +35,7 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	if err != nil {
 		return nil, errors.Wrap(err, "create lego client")
 	}
-	err = legoClient.Challenge.SetHTTP01Provider(c.ChallengeHandler)
+	err = legoClient.Challenge.SetHTTP01Provider(c.HTTP01Solver)
 	if err != nil {
 		return nil, errors.Wrap(err, "set challenge provider")
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmetest"
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,10 +19,10 @@ func TestObtainCertificate(t *testing.T) {
 	defer reset()
 
 	acmeClient := acme.Client{
-		DirectoryURL:     pebble.DirectoryURL(),
-		ChallengeHandler: acme.NewHTTP01Handler(),
+		DirectoryURL: pebble.DirectoryURL(),
+		HTTP01Solver: challenge.NewHTTP01Solver(),
 	}
-	server := acmetest.NewChallengeServer(t, acmeClient.ChallengeHandler, 5002)
+	server := acmetest.NewChallengeServer(t, acmeClient.HTTP01Solver, 5002)
 	defer server.Close()
 
 	domain := "www.example.com"

@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme"
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
 )
 
 // NewChallengeServer creates an httptest.Server which uses the handler to
 // serve HTTP01 challenges.
-func NewChallengeServer(t *testing.T, handler *acme.HTTP01Handler, port int) *httptest.Server {
+func NewChallengeServer(t *testing.T, handler *challenge.HTTP01Solver, port int) *httptest.Server {
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		portSuffix := fmt.Sprintf(":%d", port)
 		domain := strings.Replace(req.Host, portSuffix, "", -1)
@@ -24,7 +24,7 @@ func NewChallengeServer(t *testing.T, handler *acme.HTTP01Handler, port int) *ht
 		token := pathParts[len(pathParts)-1]
 		keyAuth, err := handler.HandleChallenge(domain, token)
 		w.Header().Add("content-type", "application/octet-stream")
-		if failedErr, ok := err.(acme.ErrChallengeFailed); ok {
+		if failedErr, ok := err.(challenge.ErrChallengeFailed); ok {
 			t.Log(failedErr)
 			w.WriteHeader(http.StatusNotFound)
 			return
