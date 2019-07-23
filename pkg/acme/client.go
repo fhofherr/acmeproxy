@@ -23,16 +23,13 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	// TODO as per the lego documentation the key is optional, how can we make
 	//      this happen? Currently it does not work.
 	u := &user{
-		Email: req.Email,
+		Email:      req.Email,
 		PrivateKey: req.Key,
 	}
 	cfg := lego.NewConfig(u)
 	cfg.CADirURL = c.DirectoryURL
 	// TODO make this configurable per request
 	cfg.Certificate.KeyType = certcrypto.RSA2048
-	// TODO the legoClient relies on a custom instance of net.HttpClient which
-	//      does not allow to configure the certificate pool, except for setting
-	//      an environment variable. This is inconvenient for our tests.
 	legoClient, err := lego.NewClient(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "create lego client")
@@ -54,17 +51,17 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	}
 	obtReq := certificate.ObtainRequest{
 		Domains: req.Domains,
-		Bundle: req.Bundle,
+		Bundle:  req.Bundle,
 	}
 	certs, err := legoClient.Certificate.Obtain(obtReq)
 	if err != nil {
 		return nil, errors.Wrapf(err, "obtain certificates %s", req.Domains[0])
 	}
 	return &CertificateInfo{
-		URL: certs.CertURL,
-		Certificate: certs.Certificate,
+		URL:               certs.CertURL,
+		Certificate:       certs.Certificate,
 		IssuerCertificate: certs.IssuerCertificate,
-		PrivateKey: certs.PrivateKey,
+		PrivateKey:        certs.PrivateKey,
 	}, nil
 }
 
@@ -81,12 +78,11 @@ type CertificateRequest struct {
 // CertificateInfo represents an ACME certificate along with its meta
 // information.
 type CertificateInfo struct {
-	URL string
-	Certificate []byte
-	PrivateKey []byte
+	URL               string
+	Certificate       []byte
+	PrivateKey        []byte
 	IssuerCertificate []byte
 }
-
 
 type user struct {
 	Email        string

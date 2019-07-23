@@ -3,6 +3,7 @@ package acmetest
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 )
@@ -15,6 +16,7 @@ type Pebble struct {
 	Host           string
 	ACMEPort       int
 	ManagementPort int
+	TestCert       string
 }
 
 // NewPebble creates a new Pebble instance by reading the necessary
@@ -27,12 +29,23 @@ type Pebble struct {
 func NewPebble(t *testing.T) *Pebble {
 	host := os.Getenv("ACMEPROXY_PEBBLE_HOST")
 	if host == "" {
-		t.Skipf("No ACMEPROXY_PEBBLE_HOST configured")
+		t.Skipf("ACMEPROXY_PEBBLE_HOST not set")
+	}
+	cert := os.Getenv("ACMEPROXY_PEBBLE_TEST_CERT")
+	if cert == "" {
+		t.Skipf("ACMEPROXY_PEBBLE_TEST_CERT not set")
+	}
+	if !filepath.IsAbs(cert) {
+		t.Fatalf("ACMEPROXY_PEBBLE_TEST_CERT not an absolute path: %s", cert)
+	}
+	if _, err := os.Stat(cert); os.IsNotExist(err) {
+		t.Fatalf("ACMEPROXY_PEBBLE_TEST_CERT does not exist: %s", cert)
 	}
 	return &Pebble{
 		Host:           host,
 		ACMEPort:       getPort(t, "ACMEPROXY_PEBBLE_ACME_PORT", 14000),
 		ManagementPort: getPort(t, "ACMEPROXY_PEBBLE_MGMT_PORT", 15000),
+		TestCert:       cert,
 	}
 }
 

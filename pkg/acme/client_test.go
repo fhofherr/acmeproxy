@@ -13,17 +13,20 @@ import (
 
 func TestObtainCertificate(t *testing.T) {
 	pebble := acmetest.NewPebble(t)
+	reset := acmetest.SetLegoCACertificates(t, pebble.TestCert)
+	defer reset()
+
 	acmeClient := acme.Client{DirectoryURL: pebble.DirectoryURL()}
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	certReq := acme.CertificateRequest{
-		Email: "john.doe@example.com",
-		Domains: []string{"www.example.com"},
-		Bundle: true,
+		Email:         "john.doe@example.com",
+		Domains:       []string{"www.example.com"},
+		Bundle:        true,
 		CreateAccount: true,
-		Key: key,
+		Key:           key,
 	}
 	certResp, err := acmeClient.ObtainCertificate(certReq)
 	if assert.NoError(t, err) {

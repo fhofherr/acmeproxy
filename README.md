@@ -127,12 +127,8 @@ local development environment:
 make dev-env-up
 ```
 
-After the test environment is started the following environment variable
-has to be set:
-
-```sh
-export ACMEPROXY_PEBBLE_HOST=localhost
-```
+This prints a bunch of environment variables which have to be set in
+order to configure the tests to use the started pebble instance.
 
 To shut down the test environment issue:
 

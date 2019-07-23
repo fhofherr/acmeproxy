@@ -11,7 +11,7 @@ DOCKER_COMPOSE := docker-compose
 HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
 
 .PHONY: all
-all: documentation test
+all: documentation lint test
 
 .PHONY: test
 test: ## Execute all tests and show a coverage summary
@@ -43,6 +43,12 @@ endif
 	@echo
 	@echo "***** Local development environment started *****"
 	@echo
+	@echo "Execute:"
+	@echo
+	@echo "\texport ACMEPROXY_PEBBLE_HOST=localhost"
+	@echo "\texport ACMEPROXY_PEBBLE_TEST_CERT=$(PWD)/.pebble/test/certs/pebble.minica.pem"
+	@echo "\texport ACMEPROXY_PEBBLE_ACME_PORT=14000"
+	@echo "\texport ACMEPROXY_PEBBLE_MGMT_PORT=15000"
 
 .PHONY: dev-env-down
 dev-env-down: ## Shut the local development environment down
