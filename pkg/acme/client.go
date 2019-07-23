@@ -22,8 +22,6 @@ type Client struct {
 // ObtainCertificate obtains a new certificate from the remote ACME server.
 func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, error) {
 	// TODO err if len(req.Domains) < 1
-	// TODO as per the lego documentation the key is optional, how can we make
-	//      this happen? Currently it does not work.
 	u := req.newACMEUser()
 	// TODO make keyType configurable per request
 	legoClient, err := c.newLegoClient(u, certcrypto.RSA2048)
