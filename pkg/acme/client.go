@@ -3,6 +3,7 @@ package acme
 import (
 	"crypto"
 
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
 	"github.com/go-acme/lego/certcrypto"
 	"github.com/go-acme/lego/certificate"
@@ -23,7 +24,7 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	// TODO err if len(req.Domains) < 1
 	// TODO as per the lego documentation the key is optional, how can we make
 	//      this happen? Currently it does not work.
-	u := &user{
+	u := &acme.User{
 		Email:      req.Email,
 		PrivateKey: req.Key,
 	}
@@ -45,7 +46,7 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 		opts := registration.RegisterOptions{TermsOfServiceAgreed: true}
 		reg, err := legoClient.Registration.Register(opts)
 		if err != nil {
-			return nil, errors.Wrapf(err, "register user %s", req.Email)
+			return nil, errors.Wrapf(err, "register User %s", req.Email)
 		}
 		u.Registration = reg
 	}
@@ -65,7 +66,7 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	}, nil
 }
 
-// CertificateRequest represents a request by an ACME protocol user to obtain
+// CertificateRequest represents a request by an ACME protocol User to obtain
 // or renew a certificate.
 type CertificateRequest struct {
 	Email         string            // Email address of the person responsible for the domains.
@@ -82,25 +83,4 @@ type CertificateInfo struct {
 	Certificate       []byte
 	PrivateKey        []byte
 	IssuerCertificate []byte
-}
-
-type user struct {
-	Email        string
-	Registration *registration.Resource
-	PrivateKey   crypto.PrivateKey
-}
-
-// GetEmail returns the users email.
-func (u *user) GetEmail() string {
-	return u.Email
-}
-
-// GetRegistration returns the users registration.
-func (u *user) GetRegistration() *registration.Resource {
-	return u.Registration
-}
-
-// GetPrivateKey returns the users private key.
-func (u *user) GetPrivateKey() crypto.PrivateKey {
-	return u.PrivateKey
 }
