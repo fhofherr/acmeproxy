@@ -27,7 +27,7 @@ func TestObtainCertificate(t *testing.T) {
 		{
 			name: "obtain certificate without account",
 			CertificateRequest: acme.CertificateRequest{
-				Email:      "john.doe@example.com",
+				Email:      "john.doe+RSA2048@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				PrivateKey: privateKey,
@@ -36,11 +36,52 @@ func TestObtainCertificate(t *testing.T) {
 		{
 			name: "obtain certificate with pre-existing account",
 			CertificateRequest: acme.CertificateRequest{
-				Email:      "jane.doe@example.com",
+				Email:      "jane.doe+RSA2048@example.com",
 				AccountURL: fx.Pebble.CreateAccount(t, "jane.doe@example.com", privateKey),
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				PrivateKey: privateKey,
+				KeyType:    acme.RSA2048,
+			},
+		},
+		{
+			name: "obtain RSA4096 certificate",
+			CertificateRequest: acme.CertificateRequest{
+				Email:      "john.doe+RSA4096@example.com",
+				Domains:    []string{"www.example.com"},
+				Bundle:     true,
+				PrivateKey: privateKey,
+				KeyType:    acme.RSA4096,
+			},
+		},
+		{
+			name: "obtain RSA8192 certificate",
+			CertificateRequest: acme.CertificateRequest{
+				Email:      "john.doe+RSA8192@example.com",
+				Domains:    []string{"www.example.com"},
+				Bundle:     true,
+				PrivateKey: privateKey,
+				KeyType:    acme.RSA8192,
+			},
+		},
+		{
+			name: "obtain EC256 certificate",
+			CertificateRequest: acme.CertificateRequest{
+				Email:      "john.doe+EC256@example.com",
+				Domains:    []string{"www.example.com"},
+				Bundle:     true,
+				PrivateKey: privateKey,
+				KeyType:    acme.EC256,
+			},
+		},
+		{
+			name: "obtain EC384 certificate",
+			CertificateRequest: acme.CertificateRequest{
+				Email:      "john.doe+EC384@example.com",
+				Domains:    []string{"www.example.com"},
+				Bundle:     true,
+				PrivateKey: privateKey,
+				KeyType:    acme.EC384,
 			},
 		},
 	}
@@ -56,7 +97,7 @@ func TestObtainCertificate(t *testing.T) {
 			assert.NotEmpty(t, certInfo.AccountURL)
 			for _, domain := range tt.CertificateRequest.Domains {
 				acmetest.AssertCertificateValid(t, domain, certInfo.IssuerCertificate, certInfo.Certificate)
-				acmetest.AssertKeyBelongsToCertificate(t, certInfo.Certificate, certInfo.PrivateKey)
+				acmetest.AssertKeyBelongsToCertificate(t, tt.KeyType, certInfo.Certificate, certInfo.PrivateKey)
 				fx.Pebble.AssertIssuedByPebble(t, domain, certInfo.Certificate)
 			}
 		})

@@ -1,11 +1,12 @@
 package acmetest
 
 import (
-	"crypto/rsa"
+	"crypto"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
 
+	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,12 +26,13 @@ func AssertCertificateValid(t *testing.T, domain string, issuerCerts, certificat
 }
 
 // AssertKeyBelongsToCertificate asserts that the key belongs to the certificate.
-func AssertKeyBelongsToCertificate(t *testing.T, certificate, key []byte) {
+func AssertKeyBelongsToCertificate(t *testing.T, kt acme.KeyType, certificate, key []byte) {
+	if kt == "" {
+		kt = acme.DefaultKeyType
+	}
 	cert := parseCertificate(t, certificate)
-	// TODO Is is possible for ACME to issue other key types than RSA?
-	publicKey := cert.PublicKey.(*rsa.PublicKey)
-	privateKey := parseRSAPrivateKey(t, key)
-	assert.Equal(t, publicKey, privateKey.Public())
+	privateKey := parseSigner(t, kt, key)
+	assert.Equal(t, cert.PublicKey, privateKey.Public())
 }
 
 func parseCertificate(t *testing.T, certificate []byte) *x509.Certificate {
@@ -45,14 +47,26 @@ func parseCertificate(t *testing.T, certificate []byte) *x509.Certificate {
 	return cert
 }
 
-func parseRSAPrivateKey(t *testing.T, key []byte) *rsa.PrivateKey {
+func parseSigner(t *testing.T, kt acme.KeyType, key []byte) crypto.Signer {
+	var (
+		signer crypto.Signer
+		err    error
+	)
+
 	block, _ := pem.Decode(key)
 	if block == nil {
 		t.Fatal("Passed key was not PEM encoded")
 	}
-	k, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	switch kt {
+	case acme.RSA2048, acme.RSA4096, acme.RSA8192:
+		signer, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	case acme.EC256, acme.EC384:
+		signer, err = x509.ParseECPrivateKey(block.Bytes)
+	default:
+		t.Fatalf("Unsupported key type: %v", kt)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
-	return k
+	return signer
 }

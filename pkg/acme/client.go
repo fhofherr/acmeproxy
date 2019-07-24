@@ -12,6 +12,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+// KeyType represents the key algorithm to use.
+type KeyType certcrypto.KeyType
+
+// Convenience aliases for all key types supported by lego.
+const (
+	EC256   = KeyType(certcrypto.EC256)
+	EC384   = KeyType(certcrypto.EC384)
+	RSA2048 = KeyType(certcrypto.RSA2048)
+	RSA4096 = KeyType(certcrypto.RSA4096)
+	RSA8192 = KeyType(certcrypto.RSA8192)
+)
+
+// DefaultKeyType is the default key type to use if the CertificateRequest does
+// not specify one.
+const DefaultKeyType = RSA2048
+
 // Client is an ACME protocol client capable of obtaining and renewing
 // certificates.
 type Client struct {
@@ -22,9 +38,12 @@ type Client struct {
 // ObtainCertificate obtains a new certificate from the remote ACME server.
 func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, error) {
 	// TODO err if len(req.Domains) < 1
+	keyType := certcrypto.KeyType(req.KeyType)
+	if keyType == "" {
+		keyType = certcrypto.KeyType(DefaultKeyType)
+	}
 	u := req.newACMEUser()
-	// TODO make keyType configurable per request
-	legoClient, err := c.newLegoClient(u, certcrypto.RSA2048)
+	legoClient, err := c.newLegoClient(u, keyType)
 	if err != nil {
 		return nil, errors.Wrap(err, "new lego client creation")
 	}
@@ -69,8 +88,10 @@ type CertificateRequest struct {
 	Email      string            // Email address of the person responsible for the domains.
 	AccountURL string            // URL of an already existing account; empty if no account exists.
 	PrivateKey crypto.PrivateKey // Private key of the user; don't confuse with the private key of the issued certificate.
-	Domains    []string          // Domains for which a certificate is requested.
-	Bundle     bool              // Bundle issuer certificate with issued certificate.
+
+	KeyType KeyType  // Type of key to use when requesting a certificate. Defaults to DefaultKeyType if not set.
+	Domains []string // Domains for which a certificate is requested.
+	Bundle  bool     // Bundle issuer certificate with issued certificate.
 }
 
 func (r CertificateRequest) newACMEUser() *acme.User {
