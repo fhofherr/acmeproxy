@@ -114,6 +114,28 @@ TODO: give overview over usage
 
 TODO: describe steps necessary to get a development environment going
 
+### Testing
+
+Some of `acmeproxy`'s tests require a running instance of
+[pebble](https://github.com/letsencrypt/pebble) and will be skipped if
+such an instance is not configured.
+
+The easiest way to start such an instance is to use the
+local development environment:
+
+```sh
+make dev-env-up
+```
+
+This prints a bunch of environment variables which have to be set in
+order to configure the tests to use the started pebble instance.
+
+To shut down the test environment issue:
+
+```sh
+make dev-env-down
+```
+
 ## License
 
 Copyright © 2019 Ferdinand Hofherr
