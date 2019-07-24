@@ -17,6 +17,11 @@ import (
 	"github.com/go-acme/lego/lego"
 )
 
+var (
+	pebbleHost = os.Getenv("ACMEPROXY_PEBBLE_HOST")
+	pebbleCert = os.Getenv("ACMEPROXY_PEBBLE_TEST_CERT")
+)
+
 // Pebble represents an instance of the pebble test server used for testing
 // ACME protocol clients.
 //
@@ -29,34 +34,42 @@ type Pebble struct {
 	httpClient     *http.Client
 }
 
-// NewPebble creates a new Pebble instance by reading the necessary
-// configuration settings from environment variables or using defaults.
+// SkipIfPebbleDisabled checks whether the test should be skipped because
+// pebble is not available.
 //
 // At least the ACMEPROXY_PEBBLE_HOST environment variable has to be set,
 // otherwise the test is skipped. Additionally the ACMEPort may be set using
 // the ACMEPROXY_PEBBLE_ACME_PORT environment variable, and the management port
 // by using the ACMEPROXY_PEBBLE_MGMT_PORT environment variable.
+func SkipIfPebbleDisabled(t *testing.T) bool {
+	if pebbleHost == "" || pebbleCert == "" {
+		t.Skip("Pebble disabled. Set ACMEPROXY_PEBBLE_HOST and ACMEPROXY_PEBBLE_TEST_CERT to enable.")
+		return true
+	}
+	return false
+}
+
+// NewPebble creates a new Pebble instance by reading the necessary
+// configuration settings from environment variables or using defaults.
 func NewPebble(t *testing.T) *Pebble {
-	host := os.Getenv("ACMEPROXY_PEBBLE_HOST")
-	if host == "" {
-		t.Skipf("ACMEPROXY_PEBBLE_HOST not set")
+	if pebbleHost == "" {
+		t.Fatal("ACMEPROXY_PEBBLE_HOST not set")
 	}
-	cert := os.Getenv("ACMEPROXY_PEBBLE_TEST_CERT")
-	if cert == "" {
-		t.Skipf("ACMEPROXY_PEBBLE_TEST_CERT not set")
+	if pebbleCert == "" {
+		t.Fatal("ACMEPROXY_PEBBLE_TEST_CERT not set")
 	}
-	if !filepath.IsAbs(cert) {
-		t.Fatalf("ACMEPROXY_PEBBLE_TEST_CERT not an absolute path: %s", cert)
+	if !filepath.IsAbs(pebbleCert) {
+		t.Fatalf("ACMEPROXY_PEBBLE_TEST_CERT not an absolute path: %s", pebbleCert)
 	}
-	if _, err := os.Stat(cert); os.IsNotExist(err) {
-		t.Fatalf("ACMEPROXY_PEBBLE_TEST_CERT does not exist: %s", cert)
+	if _, err := os.Stat(pebbleCert); os.IsNotExist(err) {
+		t.Fatalf("ACMEPROXY_PEBBLE_TEST_CERT does not exist: %s", pebbleCert)
 	}
 	return &Pebble{
-		Host:           host,
+		Host:           pebbleHost,
 		ACMEPort:       getPort(t, "ACMEPROXY_PEBBLE_ACME_PORT", 14000),
 		ManagementPort: getPort(t, "ACMEPROXY_PEBBLE_MGMT_PORT", 15000),
-		TestCert:       cert,
-		httpClient:     newHTTPClient(t, cert),
+		TestCert:       pebbleCert,
+		httpClient:     newHTTPClient(t, pebbleCert),
 	}
 }
 

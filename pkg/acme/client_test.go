@@ -16,6 +16,10 @@ import (
 const challengeServerPort = 5002
 
 func TestObtainCertificate(t *testing.T) {
+	if acmetest.SkipIfPebbleDisabled(t) {
+		return
+	}
+
 	fx, tearDown := newClientTestFixture(t)
 	defer tearDown()
 	privateKey := newPrivateKey(t)
