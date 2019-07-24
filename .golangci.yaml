@@ -11,12 +11,13 @@ linters-settings:
 linters:
   enable-all: true
   disable:
-    - stylecheck
-    - dupl
-    - maligned
     - depguard
-    - scopelint
-    - gochecknoinits
+    - dupl
     - gochecknoglobals
-    - golint
+    - gochecknoinits
     - goconst
+    - golint
+    - interfacer
+    - maligned
+    - scopelint
+    - stylecheck
