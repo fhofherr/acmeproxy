@@ -54,12 +54,12 @@ func (p *HTTP01Solver) CleanUp(domain, token, keyAuth string) error {
 	return nil
 }
 
-// HandleChallenge tries to find the key authorization for the passed domain
+// SolveChallenge tries to find the key authorization for the passed domain
 // and token.
 //
 // If the key authorization could not be found an instance of ErrChallengeFailed
 // is returned as error.
-func (p *HTTP01Solver) HandleChallenge(domain, token string) (string, error) {
+func (p *HTTP01Solver) SolveChallenge(domain, token string) (string, error) {
 	k := challengeKey(domain, token)
 
 	p.mu.Lock()

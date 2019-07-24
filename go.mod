@@ -4,7 +4,9 @@ go 1.12
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/fhofherr/golf v0.1.0
 	github.com/go-acme/lego v2.7.0+incompatible
+	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/miekg/dns v1.1.15 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.3.0
