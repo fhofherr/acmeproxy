@@ -40,9 +40,10 @@ func NewChallengeServer(t *testing.T, handler *challenge.HTTP01Solver, port int)
 		}
 	}))
 
-	// To enable the dev environment started in docker-compose to access to
-	// our test server started on the docker-compose host machine, we have to
-	// make it listen on all ports.
+	// The dev environment is started in docker-compose or in separate
+	// Docker containers by our CI server. In order for it to be able to access
+	// to the test server started on the host machine or a separate Docker
+	// container we have to make it listen on all interfaces.
 	//
 	// If the host machine has a firewall it has to temporarily allow access
 	// to the dev server through the firewall.
