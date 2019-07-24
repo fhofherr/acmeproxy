@@ -22,7 +22,7 @@ func NewChallengeServer(t *testing.T, handler *challenge.HTTP01Solver, port int)
 			t.Fatalf("Could not obtain token from url: %v", req.URL)
 		}
 		token := pathParts[len(pathParts)-1]
-		keyAuth, err := handler.HandleChallenge(domain, token)
+		keyAuth, err := handler.SolveChallenge(domain, token)
 		w.Header().Add("content-type", "application/octet-stream")
 		if failedErr, ok := err.(challenge.ErrChallengeFailed); ok {
 			t.Log(failedErr)
@@ -30,7 +30,7 @@ func NewChallengeServer(t *testing.T, handler *challenge.HTTP01Solver, port int)
 			return
 		}
 		if err != nil {
-			t.Errorf("HandleChallenge failed: %+v", err)
+			t.Errorf("SolveChallenge failed: %+v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
