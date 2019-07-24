@@ -54,9 +54,9 @@ func TestObtainCertificate(t *testing.T) {
 			}
 			assert.NotEmpty(t, certInfo.URL)
 			assert.NotEmpty(t, certInfo.AccountURL)
-			assert.NotEmpty(t, certInfo.IssuerCertificate)
 			for _, domain := range tt.CertificateRequest.Domains {
 				acmetest.AssertCertificateValid(t, domain, certInfo.IssuerCertificate, certInfo.Certificate)
+				acmetest.AssertKeyBelongsToCertificate(t, certInfo.Certificate, certInfo.PrivateKey)
 				fx.Pebble.AssertIssuedByPebble(t, domain, certInfo.Certificate)
 			}
 		})
