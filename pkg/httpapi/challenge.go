@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/fhofherr/golf/log"
 )
@@ -47,7 +48,8 @@ func (h challengeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ps := h.Params(r)
 	token := ps["token"]
-	keyAuth, err := h.Solver.SolveChallenge(r.Host, token)
+	domain := strings.Split(r.Host, ":")[0]
+	keyAuth, err := h.Solver.SolveChallenge(domain, token)
 	if _, ok := asErrChallengeFailed(err); ok {
 		log.Log(h.Logger, "level", "info", "error", err)
 		w.WriteHeader(http.StatusNotFound)

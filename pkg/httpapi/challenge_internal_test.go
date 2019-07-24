@@ -11,10 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestServeHTTP01Challenge(t *testing.T) {
+func TestHandleHTTP01Challenge(t *testing.T) {
 	tests := []struct {
 		name           string
-		host           string
+		domain         string
+		port           string
 		token          string
 		keyAuth        string
 		solverErr      error
@@ -22,21 +23,29 @@ func TestServeHTTP01Challenge(t *testing.T) {
 	}{
 		{
 			name:           "solve challenge successfully",
-			host:           "www.example.com",
+			domain:         "www.example.com",
+			token:          "some-token",
+			keyAuth:        "key-auth",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "ignore port number when solving challenge",
+			domain:         "www.example.com",
+			port:           "8080",
 			token:          "some-token",
 			keyAuth:        "key-auth",
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name:           "solving the challenge failed",
-			host:           "www.example.org",
+			domain:         "www.example.org",
 			token:          "some-missing-token",
 			solverErr:      httpapitest.ErrChallengeFailed{},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "other error while solving the challenge",
-			host:           "www.example.net",
+			domain:         "www.example.net",
 			token:          "some-token",
 			solverErr:      errors.New("something went wrong"),
 			expectedStatus: http.StatusInternalServerError,
@@ -46,8 +55,9 @@ func TestServeHTTP01Challenge(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			challengeSolver := &httpapitest.MockChallengeSolver{}
+			challengeSolver.Test(t)
 			challengeSolver.
-				On("SolveChallenge", tt.host, tt.token).
+				On("SolveChallenge", tt.domain, tt.token).
 				Return(tt.keyAuth, tt.solverErr)
 			handler := challengeHandler{
 				Params: func(*http.Request) map[string]string {
@@ -57,8 +67,12 @@ func TestServeHTTP01Challenge(t *testing.T) {
 				},
 				Solver: challengeSolver,
 			}
+			host := tt.domain
+			if tt.port != "" {
+				host = fmt.Sprintf("%s:%s", tt.domain, tt.port)
+			}
 			target := fmt.Sprintf("http://%s/.well-known/acme-challenge/%s",
-				tt.host, tt.token)
+				host, tt.token)
 			req := httptest.NewRequest(http.MethodGet, target, nil)
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
@@ -67,7 +81,7 @@ func TestServeHTTP01Challenge(t *testing.T) {
 			assert.Equal(t, "application/octet-stream", rr.Header().Get("content-type"))
 			assert.Equal(t, tt.keyAuth, rr.Body.String())
 
-			challengeSolver.AssertCalled(t, "SolveChallenge", tt.host, tt.token)
+			challengeSolver.AssertCalled(t, "SolveChallenge", tt.domain, tt.token)
 		})
 	}
 }
