@@ -87,7 +87,7 @@ func (c *Client) newLegoClient(u *acme.User, kt certcrypto.KeyType) (*lego.Clien
 type CertificateRequest struct {
 	Email      string            // Email address of the person responsible for the domains.
 	AccountURL string            // URL of an already existing account; empty if no account exists.
-	PrivateKey crypto.PrivateKey // Private key of the user; don't confuse with the private key of the issued certificate.
+	PrivateKey crypto.PrivateKey // Private key of the user; don't confuse with the private key of a certificate.
 
 	KeyType KeyType  // Type of key to use when requesting a certificate. Defaults to DefaultKeyType if not set.
 	Domains []string // Domains for which a certificate is requested.
