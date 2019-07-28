@@ -1,10 +1,8 @@
-package acme
+package acmeclient
 
 import (
 	"crypto"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acme"
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
 	"github.com/go-acme/lego/certcrypto"
 	"github.com/go-acme/lego/certificate"
 	"github.com/go-acme/lego/lego"
@@ -28,14 +26,11 @@ const (
 // not specify one.
 const DefaultKeyType = RSA2048
 
-// DefaultDirectoryURL points to Let's Encrypt's production directory.
-const DefaultDirectoryURL = lego.LEDirectoryProduction
-
 // Client is an ACME protocol client capable of obtaining and renewing
 // certificates.
 type Client struct {
 	DirectoryURL string
-	HTTP01Solver *challenge.HTTP01Solver
+	HTTP01Solver *HTTP01Solver
 }
 
 // ObtainCertificate obtains a new certificate from the remote ACME server.
@@ -70,7 +65,7 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	}, nil
 }
 
-func (c *Client) newLegoClient(u *acme.User, kt certcrypto.KeyType) (*lego.Client, error) {
+func (c *Client) newLegoClient(u *User, kt certcrypto.KeyType) (*lego.Client, error) {
 	cfg := lego.NewConfig(u)
 	cfg.CADirURL = c.DirectoryURL
 	cfg.Certificate.KeyType = kt
@@ -97,8 +92,8 @@ type CertificateRequest struct {
 	Bundle  bool     // Bundle issuer certificate with issued certificate.
 }
 
-func (r CertificateRequest) newACMEUser() *acme.User {
-	u := &acme.User{
+func (r CertificateRequest) newACMEUser() *User {
+	u := &User{
 		Email:      r.Email,
 		PrivateKey: r.PrivateKey,
 	}

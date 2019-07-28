@@ -1,6 +1,12 @@
 package acme
 
-import "github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
+import (
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acmeclient"
+	"github.com/go-acme/lego/lego"
+)
+
+// DefaultDirectoryURL points to Let's Encrypt's production directory.
+const DefaultDirectoryURL = lego.LEDirectoryProduction
 
 // AgentConfig contains the configuration for the ACME agent.
 type AgentConfig struct {
@@ -32,20 +38,20 @@ type AgentConfig struct {
 //
 // TODO(fh): implement acme-gateway mode
 type Agent struct {
-	acmeClient *Client
+	acmeClient *acmeclient.Client
 }
 
 // NewAgent creates a new instance of Agent.
 func NewAgent(cfg AgentConfig) *Agent {
 	return &Agent{
-		acmeClient: &Client{
+		acmeClient: &acmeclient.Client{
 			DirectoryURL: cfg.DirectoryURL,
-			HTTP01Solver: challenge.NewHTTP01Solver(),
+			HTTP01Solver: acmeclient.NewHTTP01Solver(),
 		},
 	}
 }
 
 // HTTP01ChallengeSolver returns a pointer to the HTTP01Solver used by Agent.
-func (a *Agent) HTTP01ChallengeSolver() *challenge.HTTP01Solver {
+func (a *Agent) HTTP01ChallengeSolver() *acmeclient.HTTP01Solver {
 	return a.acmeClient.HTTP01Solver
 }

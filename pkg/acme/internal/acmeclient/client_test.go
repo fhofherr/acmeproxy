@@ -1,4 +1,4 @@
-package acme_test
+package acmeclient_test
 
 import (
 	"crypto"
@@ -7,9 +7,8 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmetest"
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/challenge"
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acmeclient"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,12 +24,12 @@ func TestObtainCertificate(t *testing.T) {
 	privateKey := newPrivateKey(t)
 
 	tests := []struct {
-		acme.CertificateRequest
+		acmeclient.CertificateRequest
 		name string
 	}{
 		{
 			name: "obtain certificate without account",
-			CertificateRequest: acme.CertificateRequest{
+			CertificateRequest: acmeclient.CertificateRequest{
 				Email:      "john.doe+RSA2048@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -39,53 +38,53 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain certificate with pre-existing account",
-			CertificateRequest: acme.CertificateRequest{
+			CertificateRequest: acmeclient.CertificateRequest{
 				Email:      "jane.doe+RSA2048@example.com",
 				AccountURL: fx.Pebble.CreateAccount(t, "jane.doe@example.com", privateKey),
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				PrivateKey: privateKey,
-				KeyType:    acme.RSA2048,
+				KeyType:    acmeclient.RSA2048,
 			},
 		},
 		{
 			name: "obtain RSA4096 certificate",
-			CertificateRequest: acme.CertificateRequest{
+			CertificateRequest: acmeclient.CertificateRequest{
 				Email:      "john.doe+RSA4096@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				PrivateKey: privateKey,
-				KeyType:    acme.RSA4096,
+				KeyType:    acmeclient.RSA4096,
 			},
 		},
 		{
 			name: "obtain RSA8192 certificate",
-			CertificateRequest: acme.CertificateRequest{
+			CertificateRequest: acmeclient.CertificateRequest{
 				Email:      "john.doe+RSA8192@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				PrivateKey: privateKey,
-				KeyType:    acme.RSA8192,
+				KeyType:    acmeclient.RSA8192,
 			},
 		},
 		{
 			name: "obtain EC256 certificate",
-			CertificateRequest: acme.CertificateRequest{
+			CertificateRequest: acmeclient.CertificateRequest{
 				Email:      "john.doe+EC256@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				PrivateKey: privateKey,
-				KeyType:    acme.EC256,
+				KeyType:    acmeclient.EC256,
 			},
 		},
 		{
 			name: "obtain EC384 certificate",
-			CertificateRequest: acme.CertificateRequest{
+			CertificateRequest: acmeclient.CertificateRequest{
 				Email:      "john.doe+EC384@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				PrivateKey: privateKey,
-				KeyType:    acme.EC384,
+				KeyType:    acmeclient.EC384,
 			},
 		},
 	}
@@ -118,15 +117,15 @@ func newPrivateKey(t *testing.T) crypto.PrivateKey {
 
 type clientTestFixture struct {
 	Pebble *acmetest.Pebble
-	Client acme.Client
+	Client acmeclient.Client
 }
 
 func newClientTestFixture(t *testing.T) (clientTestFixture, func()) {
 	pebble := acmetest.NewPebble(t)
 	resetCACerts := acmetest.SetLegoCACertificates(t, pebble.TestCert)
-	client := acme.Client{
+	client := acmeclient.Client{
 		DirectoryURL: pebble.DirectoryURL(),
-		HTTP01Solver: challenge.NewHTTP01Solver(),
+		HTTP01Solver: acmeclient.NewHTTP01Solver(),
 	}
 	server := acmetest.NewChallengeServer(t, client.HTTP01Solver, challengeServerPort)
 	fixture := clientTestFixture{

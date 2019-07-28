@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acme"
+	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acmeclient"
 	"github.com/go-acme/lego/lego"
 )
 
@@ -89,7 +89,7 @@ func (p *Pebble) AssertIssuedByPebble(t *testing.T, domain string, certificate [
 
 // CreateAccount creates a new account for email on the pebble test server.
 func (p *Pebble) CreateAccount(t *testing.T, email string, key crypto.PrivateKey) string {
-	u := &acme.User{
+	u := &acmeclient.User{
 		Email:      email,
 		PrivateKey: key,
 	}
