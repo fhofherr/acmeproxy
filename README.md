@@ -108,7 +108,26 @@ encrypted.
 
 ## Usage
 
-TODO: give overview over usage
+`acmeproxy` can act as a server as well as a client. The following
+section details how to use `acmeproxy` in both ways.
+
+### Server
+
+In order to start `acmeproxy` as a server execute
+
+    acmeproxy server
+
+By default `acmeproxy` should work as intended out of the box. If you
+want to override certain settings environment variables as well as
+command line arguments can be used. The command
+
+    acmeproxy help server
+
+gives a detailed explanation of the various command line arguments.
+
+### Client
+
+TODO explain client operation once it is implemented.
 
 ## Development
 

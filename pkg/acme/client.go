@@ -28,6 +28,9 @@ const (
 // not specify one.
 const DefaultKeyType = RSA2048
 
+// DefaultDirectoryURL points to Let's Encrypt's production directory.
+const DefaultDirectoryURL = lego.LEDirectoryProduction
+
 // Client is an ACME protocol client capable of obtaining and renewing
 // certificates.
 type Client struct {

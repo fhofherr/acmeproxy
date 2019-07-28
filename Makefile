@@ -10,18 +10,27 @@ DOCKER_COMPOSE := docker-compose
 
 HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
 
-GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
+BIN_DIR := bin
+BIN_DIR_LOCAL := $(BIN_DIR)/local
+BIN_DIR_LINUX_AMD64 := $(BIN_DIR)/linux/amd64
+BINARY_NAME := acmeproxy
+
+SCRIPTS_DIR := scripts
 
 PEBBLE_DIR := .pebble
 COVERAGE_FILE := .coverage.out
 
+GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
+GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*")
+
+
 .PHONY: all
-all: documentation lint test
+all: documentation lint test build
 
 .PHONY: test
-test: .$(COVERAGE_FILE) ## Execute all tests and show a coverage summary
+test: $(COVERAGE_FILE) ## Execute all tests and show a coverage summary
 
-$(COVERAGE_FILE):
+$(COVERAGE_FILE): $(GO_FILES)
 # Using -coverprofile together with -coverpkg works since Go 1.10. Thus
 # there is no need for some complicated concatenating of coverprofiles.
 # We still use an explicit list of packages for coverpkg, since using all
@@ -80,8 +89,32 @@ endif
 $(PEBBLE_DIR):
 	git clone https://github.com/letsencrypt/pebble $@
 
+$(BIN_DIR_LOCAL):
+	mkdir -p $@
+
+$(BIN_DIR_LINUX_AMD64):
+	mkdir -p $@
+
+$(BIN_DIR_LOCAL)/$(BINARY_NAME): $(GO_FILES) | $(BIN_DIR_LOCAL)
+	$(GO) build -o $@
+
+$(BIN_DIR_LINUX_AMD64)/$(BINARY_NAME): $(GO_FILES) | $(BIN_DIR_LINUX_AMD64)
+	GOOS=linux GOARCH=amd64 $(GO) build -o $@
+
+.PHONY: build-local
+build-local: $(BIN_DIR_LOCAL)/$(BINARY_NAME)
+
+# TODO see if we can use make file rules once we need to crosscompile for other
+#      architectures.
+.PHONY: build-linux-amd64
+build-linux-amd64: $(BIN_DIR_LINUX_AMD64)/$(BINARY_NAME)
+
+.PHONY: build
+build: build-local build-linux-amd64
+
 .PHONY: clean
 clean:
+	rm -rf $(BIN_DIR)
 	rm -rf $(PEBBLE_DIR)
 	rm -rf $(COVERAGE_FILE)
 
