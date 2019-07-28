@@ -37,7 +37,7 @@ $(COVERAGE_FILE): $(GO_FILES)
 # would instrument dependencies as well.
 #
 # See https://golang.org/doc/go1.10#test
-	$(GO) test -race -covermode=atomic -coverprofile=$(COVERAGE_FILE) -coverpkg=$(GO_PACKAGES) ./... 2> /dev/null
+	@$(GO) test -race -covermode=atomic -coverprofile=$(COVERAGE_FILE) -coverpkg=$(GO_PACKAGES) ./... 2> /dev/null
 
 .PHONY: coverage
 coverage: $(COVERAGE_FILE) ## Compute and display the current total code coverage
