@@ -9,6 +9,7 @@ require (
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/miekg/dns v1.1.15 // indirect
 	github.com/pkg/errors v0.8.1
+	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
