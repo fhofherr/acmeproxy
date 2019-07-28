@@ -10,8 +10,8 @@ import (
 
 // Config contains the configuration of acmeproxy's public server.
 type Config struct {
-	ACMECfg     acme.Config
-	HTTPAPIAddr string
+	ACMEAgentCfg acme.AgentConfig
+	HTTPAPIAddr  string
 
 	Logger log.Logger
 }
@@ -23,12 +23,12 @@ type Server struct {
 
 // New creates a new Server and configures it using cfg.
 func New(cfg Config) *Server {
-	acmeClient := acme.NewClient(cfg.ACMECfg)
+	acmeAgent := acme.NewAgent(cfg.ACMEAgentCfg)
 	httpAPIServer := &httpServer{
 		Addr:   cfg.HTTPAPIAddr,
 		Logger: cfg.Logger,
 		Handler: httpapi.NewRouter(httpapi.Config{
-			Solver: acmeClient.HTTP01Solver,
+			Solver: acmeAgent.HTTP01ChallengeSolver(),
 		}),
 	}
 	return &Server{

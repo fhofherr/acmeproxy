@@ -81,7 +81,7 @@ retrieve valid SSL/TLS certificates from Let's Encrypt.
   It performs an HTTP-01 challenge, retrieves the certificates, and
   stores them locally. Additionally it makes sure that certificates get
   renewed before they expire. By executing
-  a `certificate-retrieved-hook` `acmeproxy` is able to inform clients
+  a `certificate-obtained-hook` `acmeproxy` is able to inform clients
   on the same system about a new certificate.
 
 * `certificate-agent`: `acmeproxy` performs the HTTP-01 challenge to

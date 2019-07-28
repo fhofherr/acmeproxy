@@ -47,7 +47,7 @@ all hyphens replaced underscores. For example the name of the environment
 variable matching the flag '--http-api-addr' would be 'ACMEPROXY_HTTP_API_ADDR'.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := server.Config{
-			ACMECfg: acme.Config{
+			ACMEAgentCfg: acme.AgentConfig{
 				DirectoryURL: viper.GetString(flagACMEDirectoryURLName),
 			},
 			HTTPAPIAddr: viper.GetString(flagHTTPAPIAddrName),
