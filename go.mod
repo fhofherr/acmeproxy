@@ -7,6 +7,7 @@ require (
 	github.com/fhofherr/golf v0.1.0
 	github.com/go-acme/lego v2.7.0+incompatible
 	github.com/go-chi/chi v4.0.2+incompatible
+	github.com/google/uuid v1.1.1
 	github.com/miekg/dns v1.1.15 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5

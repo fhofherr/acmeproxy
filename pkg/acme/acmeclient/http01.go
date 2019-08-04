@@ -59,6 +59,7 @@ func (p *HTTP01Solver) CleanUp(domain, token, keyAuth string) error {
 //
 // If the key authorization could not be found an instance of ErrChallengeFailed
 // is returned as error.
+// TODO(fhofherr): change signature to HTTP01ChallengeSolver(func(*http.Request) map[string]string) http.Handler
 func (p *HTTP01Solver) SolveChallenge(domain, token string) (string, error) {
 	k := challengeKey(domain, token)
 

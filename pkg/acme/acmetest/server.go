@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acmeclient"
+	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 )
 
 // NewChallengeServer creates an httptest.Server which uses the handler to

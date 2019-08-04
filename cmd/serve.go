@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/server"
@@ -47,13 +49,15 @@ all hyphens replaced underscores. For example the name of the environment
 variable matching the flag '--http-api-addr' would be 'ACMEPROXY_HTTP_API_ADDR'.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := server.Config{
-			ACMEAgentCfg: acme.AgentConfig{
-				DirectoryURL: viper.GetString(flagACMEDirectoryURLName),
-			},
-			HTTPAPIAddr: viper.GetString(flagHTTPAPIAddrName),
-			Logger:      nil,
+			ACMEDirectoryURL: viper.GetString(flagACMEDirectoryURLName),
+			HTTPAPIAddr:      viper.GetString(flagHTTPAPIAddrName),
+			Logger:           nil,
 		}
-		s := server.New(cfg)
+		s, err := server.New(cfg)
+		if err != nil {
+			fmt.Printf("%+v", err)
+			os.Exit(1)
+		}
 		s.Start()
 		defer s.Shutdown(context.Background())
 		// Block until we are killed.

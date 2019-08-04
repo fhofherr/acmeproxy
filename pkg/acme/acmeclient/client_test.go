@@ -5,23 +5,51 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"strings"
 	"testing"
 
+	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmetest"
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acmeclient"
 	"github.com/stretchr/testify/assert"
 )
 
 const challengeServerPort = 5002
 
-func TestObtainCertificate(t *testing.T) {
-	if acmetest.SkipIfPebbleDisabled(t) {
-		return
+func TestCreateAccount(t *testing.T) {
+	acmetest.SkipIfPebbleDisabled(t)
+	tests := []struct {
+		name  string
+		email string
+	}{
+		{name: "create account without email"},
+		{name: "create account with email", email: "jane.doe@example.com"},
 	}
 
 	fx, tearDown := newClientTestFixture(t)
 	defer tearDown()
-	privateKey := newPrivateKey(t)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			accountKey := newPrivateKey(t)
+			accountURL, err := fx.Client.CreateAccount(accountKey, tt.email)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, accountURL)
+			assert.Truef(
+				t,
+				strings.HasPrefix(accountURL, fx.Pebble.AccountURLPrefix()),
+				"accountURL %s did not start with %s",
+				accountURL,
+				fx.Pebble.AccountURLPrefix())
+		})
+	}
+
+}
+
+func TestObtainCertificate(t *testing.T) {
+	acmetest.SkipIfPebbleDisabled(t)
+
+	fx, tearDown := newClientTestFixture(t)
+	defer tearDown()
 
 	tests := []struct {
 		acmeclient.CertificateRequest
@@ -33,18 +61,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+RSA2048@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				PrivateKey: privateKey,
-			},
-		},
-		{
-			name: "obtain certificate with pre-existing account",
-			CertificateRequest: acmeclient.CertificateRequest{
-				Email:      "jane.doe+RSA2048@example.com",
-				AccountURL: fx.Pebble.CreateAccount(t, "jane.doe@example.com", privateKey),
-				Domains:    []string{"www.example.com"},
-				Bundle:     true,
-				PrivateKey: privateKey,
-				KeyType:    acmeclient.RSA2048,
+				AccountKey: newPrivateKey(t),
 			},
 		},
 		{
@@ -53,7 +70,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+RSA4096@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				PrivateKey: privateKey,
+				AccountKey: newPrivateKey(t),
 				KeyType:    acmeclient.RSA4096,
 			},
 		},
@@ -63,7 +80,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+RSA8192@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				PrivateKey: privateKey,
+				AccountKey: newPrivateKey(t),
 				KeyType:    acmeclient.RSA8192,
 			},
 		},
@@ -73,7 +90,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+EC256@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				PrivateKey: privateKey,
+				AccountKey: newPrivateKey(t),
 				KeyType:    acmeclient.EC256,
 			},
 		},
@@ -83,7 +100,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+EC384@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				PrivateKey: privateKey,
+				AccountKey: newPrivateKey(t),
 				KeyType:    acmeclient.EC384,
 			},
 		},
@@ -105,6 +122,30 @@ func TestObtainCertificate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
+	acmetest.SkipIfPebbleDisabled(t)
+
+	fx, tearDown := newClientTestFixture(t)
+	defer tearDown()
+
+	domain := "www.example.com"
+	accountKey := newPrivateKey(t)
+	accountURL, err := fx.Client.CreateAccount(accountKey, "jane.doe@example.com")
+	assert.NoError(t, err)
+
+	req := acmeclient.CertificateRequest{
+		Email:      "jane.doe+RSA2048@example.com",
+		AccountURL: accountURL,
+		Domains:    []string{domain},
+		Bundle:     true,
+		AccountKey: accountKey,
+		KeyType:    acmeclient.RSA2048,
+	}
+	ci, err := fx.Client.ObtainCertificate(req)
+	assert.NoError(t, err)
+	fx.Pebble.AssertIssuedByPebble(t, domain, ci.Certificate)
 }
 
 func newPrivateKey(t *testing.T) crypto.PrivateKey {

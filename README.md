@@ -125,6 +125,25 @@ command line arguments can be used. The command
 
 gives a detailed explanation of the various command line arguments.
 
+#### HTTPS errors
+
+If you use `acmeproxy` to connect to a certificate authority
+using untrusted certificates you will receive certificate errors. In
+order to connect to such a certificate authority you have to set the
+`LEGO_CA_CERTIFICATES` variable to the certificate used. This instructs
+[lego](https://godoc.org/github.com/go-acme/lego) to trust this
+certificate.
+
+For example, if you want `acmeproxy` to connect to a local installation
+of pebble, you have to execute:
+
+```sh
+export LEGO_CA_CERTIFICATES=$PWD/.pebble/test/certs/pebble.minica.pem
+```
+
+In this example the `.pebble` directory in the current working directory
+contains a local checkout of [Pebble](https://github.com/letsencrypt/pebble).
+
 ### Client
 
 TODO explain client operation once it is implemented.

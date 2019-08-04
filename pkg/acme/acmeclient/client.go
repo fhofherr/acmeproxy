@@ -33,6 +33,27 @@ type Client struct {
 	HTTP01Solver *HTTP01Solver
 }
 
+// CreateAccount creates a new ACME account for the accountKey.
+//
+// If email is not empty it is used as the contact address for the new account.
+func (c *Client) CreateAccount(accountKey crypto.PrivateKey, email string) (string, error) {
+	user := &User{
+		Email:      email,
+		PrivateKey: accountKey,
+	}
+	cfg := lego.NewConfig(user)
+	cfg.CADirURL = c.DirectoryURL
+	legoClient, err := lego.NewClient(cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "create client for new ACME account")
+	}
+	err = user.Register(legoClient)
+	if err != nil {
+		return "", errors.Wrap(err, "register new ACME account")
+	}
+	return user.Registration.URI, nil
+}
+
 // ObtainCertificate obtains a new certificate from the remote ACME server.
 func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, error) {
 	// TODO err if len(req.Domains) < 1
@@ -40,13 +61,28 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	if keyType == "" {
 		keyType = certcrypto.KeyType(DefaultKeyType)
 	}
-	u := req.newACMEUser()
-	legoClient, err := c.newLegoClient(u, keyType)
-	if err != nil {
-		return nil, errors.Wrap(err, "new lego client creation")
+	if req.AccountURL == "" {
+		var err error
+		req.AccountURL, err = c.CreateAccount(req.AccountKey, req.Email)
+		if err != nil {
+			return nil, errors.Wrap(err, "create ad-hoc account")
+		}
 	}
-	if err := u.Register(legoClient); err != nil {
-		return nil, errors.Wrap(err, "user registration")
+	user := &User{
+		Email:        req.Email,
+		Registration: &registration.Resource{URI: req.AccountURL},
+		PrivateKey:   req.AccountKey,
+	}
+	cfg := lego.NewConfig(user)
+	cfg.CADirURL = c.DirectoryURL
+	cfg.Certificate.KeyType = keyType
+	legoClient, err := lego.NewClient(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "create lego client")
+	}
+	err = legoClient.Challenge.SetHTTP01Provider(c.HTTP01Solver)
+	if err != nil {
+		return nil, errors.Wrap(err, "set challenge provider")
 	}
 	obtReq := certificate.ObtainRequest{
 		Domains: req.Domains,
@@ -58,26 +94,11 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	}
 	return &CertificateInfo{
 		URL:               certs.CertURL,
-		AccountURL:        u.Registration.URI,
+		AccountURL:        user.Registration.URI,
 		Certificate:       certs.Certificate,
 		IssuerCertificate: certs.IssuerCertificate,
 		PrivateKey:        certs.PrivateKey,
 	}, nil
-}
-
-func (c *Client) newLegoClient(u *User, kt certcrypto.KeyType) (*lego.Client, error) {
-	cfg := lego.NewConfig(u)
-	cfg.CADirURL = c.DirectoryURL
-	cfg.Certificate.KeyType = kt
-	lc, err := lego.NewClient(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "create lego client")
-	}
-	err = lc.Challenge.SetHTTP01Provider(c.HTTP01Solver)
-	if err != nil {
-		return nil, errors.Wrap(err, "set challenge provider")
-	}
-	return lc, nil
 }
 
 // CertificateRequest represents a request by an ACME protocol User to obtain
@@ -85,22 +106,11 @@ func (c *Client) newLegoClient(u *User, kt certcrypto.KeyType) (*lego.Client, er
 type CertificateRequest struct {
 	Email      string            // Email address of the person responsible for the domains.
 	AccountURL string            // URL of an already existing account; empty if no account exists.
-	PrivateKey crypto.PrivateKey // Private key of the user; don't confuse with the private key of a certificate.
+	AccountKey crypto.PrivateKey // Private key of the account; don't confuse with the private key of a certificate.
 
 	KeyType KeyType  // Type of key to use when requesting a certificate. Defaults to DefaultKeyType if not set.
 	Domains []string // Domains for which a certificate is requested.
 	Bundle  bool     // Bundle issuer certificate with issued certificate.
-}
-
-func (r CertificateRequest) newACMEUser() *User {
-	u := &User{
-		Email:      r.Email,
-		PrivateKey: r.PrivateKey,
-	}
-	if r.AccountURL != "" {
-		u.Registration = &registration.Resource{URI: r.AccountURL}
-	}
-	return u
 }
 
 // CertificateInfo represents an ACME certificate along with its meta

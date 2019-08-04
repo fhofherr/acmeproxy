@@ -1,7 +1,6 @@
 package acmetest
 
 import (
-	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -12,9 +11,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acmeclient"
-	"github.com/go-acme/lego/lego"
 )
 
 var (
@@ -78,6 +74,12 @@ func (p *Pebble) DirectoryURL() string {
 	return fmt.Sprintf("https://%s:%d/dir", p.Host, p.ACMEPort)
 }
 
+// AccountURLPrefix returns the prefix of all account URLs belonging to
+// accounts issued by this instance of pebble.
+func (p *Pebble) AccountURLPrefix() string {
+	return fmt.Sprintf("https://%s:%d/my-account", p.Host, p.ACMEPort)
+}
+
 // AssertIssuedByPebble asserts that the passed PEM encoded certificate
 // is a valid certificate issued by this instance of pebble.
 func (p *Pebble) AssertIssuedByPebble(t *testing.T, domain string, certificate []byte) {
@@ -85,24 +87,6 @@ func (p *Pebble) AssertIssuedByPebble(t *testing.T, domain string, certificate [
 	pebbleCerts = append(pebbleCerts, p.loadCACert(t, "roots")...)
 	pebbleCerts = append(pebbleCerts, p.loadCACert(t, "intermediates")...)
 	AssertCertificateValid(t, domain, pebbleCerts, certificate)
-}
-
-// CreateAccount creates a new account for email on the pebble test server.
-func (p *Pebble) CreateAccount(t *testing.T, email string, key crypto.PrivateKey) string {
-	u := &acmeclient.User{
-		Email:      email,
-		PrivateKey: key,
-	}
-	cfg := lego.NewConfig(u)
-	cfg.CADirURL = p.DirectoryURL()
-	client, err := lego.NewClient(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := u.Register(client); err != nil {
-		t.Fatal(err)
-	}
-	return u.Registration.URI
 }
 
 func (p *Pebble) loadCACert(t *testing.T, certType string) []byte {

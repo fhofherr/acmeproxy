@@ -6,7 +6,7 @@ import (
 	"encoding/pem"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/internal/acmeclient"
+	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/stretchr/testify/assert"
 )
 
