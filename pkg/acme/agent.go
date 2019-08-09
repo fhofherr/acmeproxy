@@ -2,13 +2,11 @@ package acme
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"io"
 	"time"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
+	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/go-acme/lego/lego"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -66,7 +64,7 @@ func (a *Agent) RegisterClient(clientID uuid.UUID, email string) error {
 		if !c.IsZero() {
 			return nil
 		}
-		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		key, err := certutil.NewPrivateKey(certutil.EC256)
 		if err != nil {
 			return errors.Wrapf(err, "new private key for client: %v", clientID)
 		}
