@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
+	"github.com/fhofherr/acmeproxy/pkg/certutil"
 )
 
 // FakeCA implements a fake certificate authority which issues certificates.
@@ -54,7 +55,7 @@ func (c *FakeCA) AssertIssued(t *testing.T, domainName string, cert []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	rootCert := pemEncode(t, "CERTIFICATE", c.rootCert.Raw)
-	AssertCertificateValid(t, domainName, rootCert, cert)
+	certutil.AssertCertificateValid(t, domainName, rootCert, cert)
 }
 
 func (c *FakeCA) sign(domains []string) (*x509.Certificate, *rsa.PrivateKey) {

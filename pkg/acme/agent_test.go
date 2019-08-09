@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
+	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmetest"
+	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,7 +66,7 @@ func TestRegisterNewDomain(t *testing.T) {
 	keyBuf := bytes.Buffer{}
 	err = fx.Agent.WritePrivateKey(clientID, domainName, &keyBuf)
 	assert.NoError(t, err)
-	acmetest.AssertKeyBelongsToCertificate(t, "", certBuf.Bytes(), keyBuf.Bytes())
+	certutil.AssertKeyBelongsToCertificate(t, acmeclient.DefaultKeyType, certBuf.Bytes(), keyBuf.Bytes())
 }
 
 func TestRegisterDomainForUnknownClient(t *testing.T) {

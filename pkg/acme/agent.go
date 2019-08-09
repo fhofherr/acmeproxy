@@ -109,7 +109,7 @@ func (a *Agent) RegisterDomain(clientID uuid.UUID, domainName string) error {
 		req := acmeclient.CertificateRequest{
 			AccountURL: client.AccountURL,
 			AccountKey: client.Key,
-			KeyType:    acmeclient.RSA4096,
+			KeyType:    acmeclient.DefaultKeyType,
 			Domains:    []string{domainName},
 			Bundle:     true,
 		}

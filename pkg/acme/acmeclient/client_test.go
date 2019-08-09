@@ -10,6 +10,7 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmetest"
+	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,7 +72,7 @@ func TestObtainCertificate(t *testing.T) {
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				AccountKey: newPrivateKey(t),
-				KeyType:    acmeclient.RSA4096,
+				KeyType:    certutil.RSA4096,
 			},
 		},
 		{
@@ -81,7 +82,7 @@ func TestObtainCertificate(t *testing.T) {
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				AccountKey: newPrivateKey(t),
-				KeyType:    acmeclient.RSA8192,
+				KeyType:    certutil.RSA8192,
 			},
 		},
 		{
@@ -91,7 +92,7 @@ func TestObtainCertificate(t *testing.T) {
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				AccountKey: newPrivateKey(t),
-				KeyType:    acmeclient.EC256,
+				KeyType:    certutil.EC256,
 			},
 		},
 		{
@@ -101,7 +102,7 @@ func TestObtainCertificate(t *testing.T) {
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
 				AccountKey: newPrivateKey(t),
-				KeyType:    acmeclient.EC384,
+				KeyType:    certutil.EC384,
 			},
 		},
 	}
@@ -116,8 +117,8 @@ func TestObtainCertificate(t *testing.T) {
 			assert.NotEmpty(t, certInfo.URL)
 			assert.NotEmpty(t, certInfo.AccountURL)
 			for _, domain := range tt.CertificateRequest.Domains {
-				acmetest.AssertCertificateValid(t, domain, certInfo.IssuerCertificate, certInfo.Certificate)
-				acmetest.AssertKeyBelongsToCertificate(t, tt.KeyType, certInfo.Certificate, certInfo.PrivateKey)
+				certutil.AssertCertificateValid(t, domain, certInfo.IssuerCertificate, certInfo.Certificate)
+				certutil.AssertKeyBelongsToCertificate(t, tt.KeyType, certInfo.Certificate, certInfo.PrivateKey)
 				fx.Pebble.AssertIssuedByPebble(t, domain, certInfo.Certificate)
 			}
 		})
@@ -141,7 +142,7 @@ func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
 		Domains:    []string{domain},
 		Bundle:     true,
 		AccountKey: accountKey,
-		KeyType:    acmeclient.RSA2048,
+		KeyType:    certutil.RSA2048,
 	}
 	ci, err := fx.Client.ObtainCertificate(req)
 	assert.NoError(t, err)
