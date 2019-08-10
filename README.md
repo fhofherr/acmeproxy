@@ -177,6 +177,11 @@ To shut down the test environment issue:
 make dev-env-down
 ```
 
+### Linter
+
+`acmeproxy` uses GolangCI. The full report can be found
+[here](https://golangci.com/r/github.com/fhofherr/acmeproxy)
+
 ## License
 
 Copyright © 2019 Ferdinand Hofherr
