@@ -3,6 +3,9 @@
 `acmeproxy` is a proxy for [ACME
 compliant](https://tools.ietf.org/html/rfc8555) certificate authorities.
 
+[![GoDoc](https://godoc.org/github.com/fhofherr/acmeproxy?status.svg)](https://godoc.org/github.com/fhofherr/acmeproxy)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fhofherr/acmeproxy)](https://goreportcard.com/report/github.com/fhofherr/acmeproxy)
+
 ## Purpose
 
 `acmeproxy` is meant for situations similar to the one shown in the following
