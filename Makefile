@@ -51,6 +51,10 @@ coverageHTML: $(COVERAGE_FILE) ## Create HTML coverage report
 race: ## Execute all tests with race detector enabled
 	$(GO) test -race ./...
 
+.PHONY: test-update
+test-update: ## Execute all tests that have a -update flag defined.
+	$(GO) test ./pkg/certutil -update
+
 .PHONY: lint
 lint:
 	$(GOLANGCI_LINT) run
