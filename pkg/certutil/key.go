@@ -1,6 +1,7 @@
 package certutil
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -107,4 +108,53 @@ func parseECDSAKey(bs []byte) (crypto.PrivateKey, error) {
 func parseRSAKey(bs []byte) (crypto.PrivateKey, error) {
 	key, err := x509.ParsePKCS1PrivateKey(bs)
 	return key, errors.Wrap(err, "parse RSA private key")
+}
+
+// WritePrivateKey writes a private key to a file.
+//
+// WritePrivateKey returns an error if the writing the key to w fails or if
+// WritePrivateKey does not support the type of private key passed.
+//
+// If pemEncode is true WritePrivateKey PEM-encodes the private key before it
+// writes it to w.
+func WritePrivateKey(key crypto.PrivateKey, w io.Writer, pemEncode bool) error {
+	var (
+		bs  []byte
+		typ string
+		err error
+	)
+
+	switch pk := key.(type) {
+	case *ecdsa.PrivateKey:
+		typ = "EC PRIVATE KEY"
+		bs, err = x509.MarshalECPrivateKey(pk)
+		if err != nil {
+			return errors.Wrap(err, "marshal ECDSA private key")
+		}
+	case *rsa.PrivateKey:
+		bs = x509.MarshalPKCS1PrivateKey(pk)
+		typ = "RSA PRIVATE KEY"
+	default:
+		return errors.New("unsupported private key")
+	}
+	if pemEncode {
+		bs, err = pemEncodeBytes(typ, bs)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = w.Write(bs)
+	return errors.Wrap(err, "write private key")
+}
+
+func pemEncodeBytes(typ string, bs []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	err := pem.Encode(&buf, &pem.Block{
+		Type:  typ,
+		Bytes: bs,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "pem encode")
+	}
+	return buf.Bytes(), err
 }
