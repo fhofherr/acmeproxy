@@ -35,6 +35,46 @@ const (
 	RSA8192
 )
 
+// DetermineKeyType inspects the passed key and returns the appropriate
+// KeyType. It returns an error if it could not determine the passed key
+// type. In this case the returned key type is wrong and has to be ignored.
+func DetermineKeyType(key crypto.PrivateKey) (KeyType, error) {
+	switch pk := key.(type) {
+	case *ecdsa.PrivateKey:
+		return determineECDSAKeyType(pk)
+	case *rsa.PrivateKey:
+		return determineRSAKeyType(pk)
+	default:
+		return -1, errors.New("unsupported key type")
+	}
+}
+
+func determineECDSAKeyType(pk *ecdsa.PrivateKey) (KeyType, error) {
+	curveName := pk.Curve.Params().Name
+	switch curveName {
+	case "P-256":
+		return EC256, nil
+	case "P-384":
+		return EC384, nil
+	default:
+		return -1, errors.Errorf("unsupported curve: %s", curveName)
+	}
+}
+
+func determineRSAKeyType(pk *rsa.PrivateKey) (KeyType, error) {
+	bitLen := pk.PublicKey.N.BitLen()
+	switch bitLen {
+	case 2048:
+		return RSA2048, nil
+	case 4096:
+		return RSA4096, nil
+	case 8192:
+		return RSA8192, nil
+	default:
+		return -1, errors.Errorf("unsupported bit length: %d", bitLen)
+	}
+}
+
 // NewPrivateKey creates a new private key for the specified key type.
 //
 // It uses crypto/rand.Reader as the source for cryptographically secure

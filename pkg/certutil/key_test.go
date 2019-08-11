@@ -36,8 +36,15 @@ func TestNewPrivateKey(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			actual, err := certutil.NewPrivateKey(tt.keyType)
-			assert.NoError(t, err)
+			if !assert.NoError(t, err) {
+				return
+			}
+			keyType, err := certutil.DetermineKeyType(actual)
+			if !assert.NoError(t, err) {
+				return
+			}
 			assert.IsType(t, tt.expectedType, actual)
+			assert.Equal(t, tt.keyType, keyType)
 		})
 	}
 }
