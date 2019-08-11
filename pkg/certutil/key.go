@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -157,4 +158,14 @@ func pemEncodeBytes(typ string, bs []byte) ([]byte, error) {
 		return nil, errors.Wrap(err, "pem encode")
 	}
 	return buf.Bytes(), err
+}
+
+// KeyMust panics err != nil. It returns key otherwise.
+// KeyMust should not be called in production code unless the caller is
+// absolutely sure that a panic is warranted.
+func KeyMust(key crypto.PrivateKey, err error) crypto.PrivateKey {
+	if err != nil {
+		panic(fmt.Sprintf("key must: %v", err))
+	}
+	return key
 }
