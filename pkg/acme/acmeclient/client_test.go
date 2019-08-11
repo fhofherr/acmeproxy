@@ -1,10 +1,6 @@
 package acmeclient_test
 
 import (
-	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"strings"
 	"testing"
 
@@ -31,7 +27,8 @@ func TestCreateAccount(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			accountKey := newPrivateKey(t)
+			// TODO(fhofherr) read from golden file instead
+			accountKey := certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256))
 			accountURL, err := fx.Client.CreateAccount(accountKey, tt.email)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, accountURL)
@@ -62,7 +59,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+RSA2048@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				AccountKey: newPrivateKey(t),
+				AccountKey: certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256)),
 			},
 		},
 		{
@@ -71,7 +68,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+RSA4096@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				AccountKey: newPrivateKey(t),
+				AccountKey: certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256)),
 				KeyType:    certutil.RSA4096,
 			},
 		},
@@ -81,7 +78,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+RSA8192@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				AccountKey: newPrivateKey(t),
+				AccountKey: certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256)),
 				KeyType:    certutil.RSA8192,
 			},
 		},
@@ -91,7 +88,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+EC256@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				AccountKey: newPrivateKey(t),
+				AccountKey: certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256)),
 				KeyType:    certutil.EC256,
 			},
 		},
@@ -101,7 +98,7 @@ func TestObtainCertificate(t *testing.T) {
 				Email:      "john.doe+EC384@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
-				AccountKey: newPrivateKey(t),
+				AccountKey: certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256)),
 				KeyType:    certutil.EC384,
 			},
 		},
@@ -132,7 +129,7 @@ func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
 	defer tearDown()
 
 	domain := "www.example.com"
-	accountKey := newPrivateKey(t)
+	accountKey := certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256))
 	accountURL, err := fx.Client.CreateAccount(accountKey, "jane.doe@example.com")
 	assert.NoError(t, err)
 
@@ -147,14 +144,6 @@ func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
 	ci, err := fx.Client.ObtainCertificate(req)
 	assert.NoError(t, err)
 	fx.Pebble.AssertIssuedByPebble(t, domain, ci.Certificate)
-}
-
-func newPrivateKey(t *testing.T) crypto.PrivateKey {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return key
 }
 
 type clientTestFixture struct {
