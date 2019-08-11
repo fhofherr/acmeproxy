@@ -3,28 +3,16 @@ package acmeclient
 import (
 	"crypto"
 
-	"github.com/go-acme/lego/certcrypto"
+	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/go-acme/lego/certificate"
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
 	"github.com/pkg/errors"
 )
 
-// KeyType represents the key algorithm to use.
-type KeyType certcrypto.KeyType
-
-// Convenience aliases for all key types supported by lego.
-const (
-	EC256   = KeyType(certcrypto.EC256)
-	EC384   = KeyType(certcrypto.EC384)
-	RSA2048 = KeyType(certcrypto.RSA2048)
-	RSA4096 = KeyType(certcrypto.RSA4096)
-	RSA8192 = KeyType(certcrypto.RSA8192)
-)
-
 // DefaultKeyType is the default key type to use if the CertificateRequest does
 // not specify one.
-const DefaultKeyType = RSA2048
+const DefaultKeyType = certutil.RSA2048
 
 // Client is an ACME protocol client capable of obtaining and renewing
 // certificates.
@@ -57,9 +45,9 @@ func (c *Client) CreateAccount(accountKey crypto.PrivateKey, email string) (stri
 // ObtainCertificate obtains a new certificate from the remote ACME server.
 func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, error) {
 	// TODO err if len(req.Domains) < 1
-	keyType := certcrypto.KeyType(req.KeyType)
-	if keyType == "" {
-		keyType = certcrypto.KeyType(DefaultKeyType)
+	keyType, err := legoKeyType(req.KeyType)
+	if err != nil {
+		return nil, errors.Wrap(err, "determine lego key type")
 	}
 	if req.AccountURL == "" {
 		var err error
@@ -108,9 +96,9 @@ type CertificateRequest struct {
 	AccountURL string            // URL of an already existing account; empty if no account exists.
 	AccountKey crypto.PrivateKey // Private key of the account; don't confuse with the private key of a certificate.
 
-	KeyType KeyType  // Type of key to use when requesting a certificate. Defaults to DefaultKeyType if not set.
-	Domains []string // Domains for which a certificate is requested.
-	Bundle  bool     // Bundle issuer certificate with issued certificate.
+	KeyType certutil.KeyType // Type of key to use when requesting a certificate. Defaults to DefaultKeyType if not set.
+	Domains []string         // Domains for which a certificate is requested.
+	Bundle  bool             // Bundle issuer certificate with issued certificate.
 }
 
 // CertificateInfo represents an ACME certificate along with its meta

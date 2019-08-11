@@ -1,4 +1,4 @@
-package acmetest
+package certutil
 
 import (
 	"crypto"
@@ -6,7 +6,6 @@ import (
 	"encoding/pem"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,15 +25,15 @@ func AssertCertificateValid(t *testing.T, domain string, issuerCerts, certificat
 }
 
 // AssertKeyBelongsToCertificate asserts that the key belongs to the certificate.
-func AssertKeyBelongsToCertificate(t *testing.T, kt acmeclient.KeyType, certificate, key []byte) {
-	if kt == "" {
-		kt = acmeclient.DefaultKeyType
-	}
+func AssertKeyBelongsToCertificate(t *testing.T, kt KeyType, certificate, key []byte) {
 	cert := parseCertificate(t, certificate)
 	privateKey := parseSigner(t, kt, key)
-	assert.Equal(t, cert.PublicKey, privateKey.Public())
+	assert.Equal(t, cert.PublicKey, privateKey.Public(),
+		"public key mismatch: key did not belong to certificate.")
 }
 
+// TODO(fhofherr) remove the *testing.T parameter and return error instead.
+// TODO(fhofherr) move this to another file and make it public.
 func parseCertificate(t *testing.T, certificate []byte) *x509.Certificate {
 	block, _ := pem.Decode(certificate)
 	if block == nil {
@@ -47,7 +46,7 @@ func parseCertificate(t *testing.T, certificate []byte) *x509.Certificate {
 	return cert
 }
 
-func parseSigner(t *testing.T, kt acmeclient.KeyType, key []byte) crypto.Signer {
+func parseSigner(t *testing.T, kt KeyType, key []byte) crypto.Signer {
 	var (
 		signer crypto.Signer
 		err    error
@@ -58,9 +57,9 @@ func parseSigner(t *testing.T, kt acmeclient.KeyType, key []byte) crypto.Signer 
 		t.Fatal("Passed key was not PEM encoded")
 	}
 	switch kt {
-	case acmeclient.RSA2048, acmeclient.RSA4096, acmeclient.RSA8192:
+	case RSA2048, RSA4096, RSA8192:
 		signer, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-	case acmeclient.EC256, acmeclient.EC384:
+	case EC256, EC384:
 		signer, err = x509.ParseECPrivateKey(block.Bytes)
 	default:
 		t.Fatalf("Unsupported key type: %v", kt)

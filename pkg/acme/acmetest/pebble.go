@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/fhofherr/acmeproxy/pkg/certutil"
 )
 
 var (
@@ -86,7 +88,7 @@ func (p *Pebble) AssertIssuedByPebble(t *testing.T, domain string, certificate [
 	var pebbleCerts []byte
 	pebbleCerts = append(pebbleCerts, p.loadCACert(t, "roots")...)
 	pebbleCerts = append(pebbleCerts, p.loadCACert(t, "intermediates")...)
-	AssertCertificateValid(t, domain, pebbleCerts, certificate)
+	certutil.AssertCertificateValid(t, domain, pebbleCerts, certificate)
 }
 
 func (p *Pebble) loadCACert(t *testing.T, certType string) []byte {
