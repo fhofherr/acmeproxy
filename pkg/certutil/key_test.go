@@ -2,7 +2,6 @@ package certutil_test
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -162,7 +161,7 @@ func TestWritePrivateKey(t *testing.T) {
 			if err != nil {
 				t.Fatalf("create temporary directory: %v", tmpDir)
 			}
-			pk := readPrivateKeyFromFile(t, tt.keyType, srcKeyPath, tt.pemEncode)
+			pk := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(tt.keyType, srcKeyPath, tt.pemEncode))
 			targetKeyPath := filepath.Join(tmpDir, tt.name)
 			w, err := os.Create(targetKeyPath)
 			if err != nil {
@@ -184,19 +183,6 @@ type errorReader struct {
 
 func (e *errorReader) Read([]byte) (int, error) {
 	return 0, e.Err
-}
-
-func readPrivateKeyFromFile(t *testing.T, kt certutil.KeyType, keyPath string, pemDecode bool) crypto.PrivateKey {
-	keyReader, err := os.Open(keyPath)
-	if err != nil {
-		t.Fatalf("open key path: %v", err)
-	}
-	defer keyReader.Close()
-	pk, err := certutil.ReadPrivateKey(kt, keyReader, pemDecode)
-	if err != nil {
-		t.Fatalf("read key from file: %v", err)
-	}
-	return pk
 }
 
 func sha256SumFile(t *testing.T, path string) []byte {
