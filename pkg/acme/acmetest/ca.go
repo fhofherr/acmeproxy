@@ -25,6 +25,8 @@ import (
 // to test the acme.Agent without needing a real ACME CA.
 //
 // FakeCA is heavily inspired by minica: https://github.com/jsha/minica
+//
+// Deprecated: this is way to much code to maintain just for testing.
 type FakeCA struct {
 	T        *testing.T        // test using this instance of FakeCA.
 	KeyBits  int               // Bit size of key.
