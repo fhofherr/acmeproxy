@@ -7,6 +7,7 @@ GO := go
 GOLINT := golint
 GOLANGCI_LINT := golangci-lint
 DOCKER_COMPOSE := docker-compose
+PROTOC := protoc
 
 HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
 
@@ -23,6 +24,7 @@ COVERAGE_FILE := .coverage.out
 GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
 GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*")
 
+# -----------------------------------------------------------------------------
 
 .PHONY: all
 all: documentation lint test build
@@ -54,6 +56,7 @@ race: ## Execute all tests with race detector enabled
 .PHONY: test-update
 test-update: ## Execute all tests that have a -update flag defined.
 	$(GO) test ./pkg/certutil -update
+	$(GO) test ./pkg/db/internal/dbrecords -update
 
 .PHONY: lint
 lint:
@@ -123,3 +126,27 @@ clean: ## Remove all intermediate directories and files
 .PHONY: help
 help: ## Display this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
+# -----------------------------------------------------------------------------
+#
+# Protocol Buffers
+#
+# The targets below are not added as dependencies to any of the other targets.
+# All *.pb.go files are checked into version controll to ensure the module can
+# be built even if protoc is not installed. Therefore those targets should only
+# be called explicitly if needed.
+#
+# -----------------------------------------------------------------------------
+PROTOBUF_SRC_FILES := $(shell find . -iname '*.proto')
+PROTOBUF_GO_FILES := $(patsubst %.proto,%.pb.go,$(PROTOBUF_SRC_FILES))
+
+%.pb.go: %.proto
+	$(PROTOC) -I=$(PWD) --go_out=$(PWD) $<
+
+.PHONY: protobuf
+pb: $(PROTOBUF_GO_FILES) ## Generate all *.pb.go files
+
+.PHONY: protobuf-clean
+pb-clean: ## Remove all *.pb.go files
+	find . -iname '*.pb.go' -delete

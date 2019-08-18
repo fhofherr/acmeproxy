@@ -1,0 +1,13 @@
+syntax = "proto3";
+package dbrecords;
+
+message Client {
+    bytes id = 1;
+    string accountURL = 2;
+    AccountKey accountKey = 3;
+
+    message AccountKey {
+        uint32 keyType = 1;
+        bytes keyBytes = 2;
+    }
+}
