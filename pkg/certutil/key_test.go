@@ -149,7 +149,8 @@ func TestWritePrivateKey(t *testing.T) {
 	// Create tmpDir before we iterate over our test cases. This way the tmpDir
 	// has the test function's name as prefix and does not contain the test
 	// cases names.
-	tmpDir, err := ioutil.TempDir("", t.Name())
+	tmpDir, tearDown := createTmpDir(t)
+	defer tearDown()
 
 	for _, tt := range tests {
 		tt := tt
@@ -157,9 +158,6 @@ func TestWritePrivateKey(t *testing.T) {
 			srcKeyPath := filepath.Join("testdata", t.Name())
 			if *certutil.FlagUpdate {
 				certutil.CreateOpenSSLPrivateKey(t, srcKeyPath)
-			}
-			if err != nil {
-				t.Fatalf("create temporary directory: %v", tmpDir)
 			}
 			pk := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(tt.keyType, srcKeyPath, tt.pemEncode))
 			targetKeyPath := filepath.Join(tmpDir, tt.name)
@@ -197,4 +195,16 @@ func sha256SumFile(t *testing.T, path string) []byte {
 	}
 	hash := sha256.Sum256(bs)
 	return hash[:]
+}
+
+func createTmpDir(t *testing.T) (string, func()) {
+	tmpDir, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tmpDir, func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Error(err)
+		}
+	}
 }
