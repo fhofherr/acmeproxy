@@ -20,10 +20,11 @@ func CreateOpenSSLPrivateKey(t *testing.T, keyPath string) {
 	if err != nil {
 		t.Fatalf("failed to create target directory: %v", err)
 	}
+	// TODO(fhofherr) this should not depend on the file name but on a passed key type.
 	if strings.HasPrefix(keyFile, "ec") {
 		createOpenSSLECPrivateKey(t, dir, keyFile)
 	} else {
-		creteOpenSSLRSAPrivateKey(t, dir, keyFile)
+		createOpenSSLRSAPrivateKey(t, dir, keyFile)
 	}
 }
 
@@ -46,7 +47,7 @@ func createOpenSSLECPrivateKey(t *testing.T, dir, keyFile string) {
 	openssl(t, argv...)
 }
 
-func creteOpenSSLRSAPrivateKey(t *testing.T, dir, keyFile string) {
+func createOpenSSLRSAPrivateKey(t *testing.T, dir, keyFile string) {
 	pemOk := true
 	targetFile := filepath.Join(dir, keyFile)
 	if filepath.Ext(keyFile) != ".pem" {
