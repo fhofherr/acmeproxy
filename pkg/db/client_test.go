@@ -38,3 +38,5 @@ func TestSaveNewClientToBoltDB(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expected, saved)
 }
+
+// TODO(fhofherr) test update client
