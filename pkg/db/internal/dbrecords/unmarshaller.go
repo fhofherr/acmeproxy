@@ -17,6 +17,8 @@ func Unmarshal(bs []byte, v interface{}) error {
 	switch obj := v.(type) {
 	case *acme.Client:
 		u.unmarshalACMEClient(bs, obj)
+	case *acme.Domain:
+		u.unmarshalACMEDomain(bs, obj)
 	case *uuid.UUID:
 		u.unmarshalUUID(bs, obj)
 	default:
@@ -71,6 +73,25 @@ func (u *unmarshaller) unmarshalPrivateKey(kt keyType, bs []byte) crypto.Private
 		}
 	})
 	return pk
+}
+
+func (u *unmarshaller) unmarshalACMEDomain(bs []byte, domain *acme.Domain) {
+	u.do(func() error {
+		if domain == nil {
+			return errors.New("domain must not be nil")
+		}
+		var (
+			rec      Domain
+			clientID uuid.UUID
+		)
+		u.unmarshalPB(bs, &rec)
+		u.unmarshalUUID(rec.ClientID, &clientID)
+		domain.ClientID = clientID
+		domain.Name = rec.Name
+		domain.Certificate = rec.CertificatePEM
+		domain.PrivateKey = rec.PrivateKeyPEM
+		return nil
+	})
 }
 
 func (u *unmarshaller) unmarshalPB(bs []byte, msg proto.Message) {

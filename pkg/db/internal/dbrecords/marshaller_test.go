@@ -1,6 +1,7 @@
 package dbrecords_test
 
 import (
+	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -87,6 +88,63 @@ func TestMarshalAndUnmarshalClients(t *testing.T) {
 				return
 			}
 			assertDomainObjectsEqual(t, source, target)
+		})
+	}
+}
+
+func TestMarshalAndUnmarshalDomain(t *testing.T) {
+	tests := []struct {
+		name     string
+		toSource func(*acme.Domain) interface{}
+	}{
+		{
+			name: "acme.Domain",
+			toSource: func(domain *acme.Domain) interface{} {
+				return *domain
+			},
+		},
+		{
+			name: "pointer to acme.Domain",
+			toSource: func(domain *acme.Domain) interface{} {
+				return domain
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			domainName := "example.com"
+			keyFile := filepath.Join("testdata", t.Name(), "key.pem")
+			certFile := filepath.Join("testdata", t.Name(), "certificate.pem")
+			if *dbrecords.FlagUpdate {
+				pk := certutil.WritePrivateKeyForTesting(t, keyFile, certutil.RSA2048, true)
+				certutil.WriteCertificateForTesting(t, certFile, domainName, pk, true)
+			}
+			keyBytes, err := ioutil.ReadFile(keyFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			certBytes, err := ioutil.ReadFile(certFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			domain := &acme.Domain{
+				ClientID:    uuid.Must(uuid.NewRandom()),
+				Name:        domainName,
+				Certificate: certBytes,
+				PrivateKey:  keyBytes,
+			}
+			var source interface{} = domain
+			if tt.toSource != nil {
+				source = tt.toSource(domain)
+			}
+			bs, err := dbrecords.Marshal(source)
+			assert.NoError(t, err)
+			target := &acme.Domain{}
+			err = dbrecords.Unmarshal(bs, target)
+			assert.NoError(t, err)
+			assertDomainObjectsEqual(t, domain, target)
 		})
 	}
 }

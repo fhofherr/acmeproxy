@@ -23,6 +23,10 @@ func Marshal(v interface{}) ([]byte, error) {
 		bs = m.marshalACMEClient(obj)
 	case acme.Client:
 		bs = m.marshalACMEClient(&obj)
+	case *acme.Domain:
+		bs = m.marshalACMEDomain(obj)
+	case acme.Domain:
+		bs = m.marshalACMEDomain(&obj)
 	case uuid.UUID:
 		bs = m.marshalUUID(obj)
 	default:
@@ -48,22 +52,17 @@ func (m *marshaller) marshalUUID(id uuid.UUID) []byte {
 }
 
 func (m *marshaller) marshalACMEClient(client *acme.Client) []byte {
-	var bs []byte
-	m.do(func() error {
-		idBytes := m.marshalUUID(client.ID)
-		kt, keyBytes := m.marshalPrivateKey(client.Key)
-		rec := Client{
-			Id:         idBytes,
-			AccountURL: client.AccountURL,
-			AccountKey: &Client_AccountKey{
-				KeyType:  uint32(kt),
-				KeyBytes: keyBytes,
-			},
-		}
-		bs = m.marshalPB(&rec)
-		return nil
-	})
-	return bs
+	idBytes := m.marshalUUID(client.ID)
+	kt, keyBytes := m.marshalPrivateKey(client.Key)
+	rec := Client{
+		Id:         idBytes,
+		AccountURL: client.AccountURL,
+		AccountKey: &Client_AccountKey{
+			KeyType:  uint32(kt),
+			KeyBytes: keyBytes,
+		},
+	}
+	return m.marshalPB(&rec)
 }
 
 func (m *marshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyType, []byte) {
@@ -86,6 +85,17 @@ func (m *marshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyType, [
 		return errors.Wrap(err, "write private key")
 	})
 	return kt, buf.Bytes()
+}
+
+func (m *marshaller) marshalACMEDomain(d *acme.Domain) []byte {
+	idBytes := m.marshalUUID(d.ClientID)
+	rec := Domain{
+		ClientID:       idBytes,
+		Name:           d.Name,
+		CertificatePEM: d.Certificate,
+		PrivateKeyPEM:  d.PrivateKey,
+	}
+	return m.marshalPB(&rec)
 }
 
 func (m *marshaller) marshalPB(msg proto.Message) []byte {

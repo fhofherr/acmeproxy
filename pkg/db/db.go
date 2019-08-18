@@ -68,6 +68,14 @@ func (b *Bolt) ClientRepository() acme.ClientRepository {
 	}
 }
 
+// DomainRepository returns an instance of a domain repository.
+func (b *Bolt) DomainRepository() acme.DomainRepository {
+	return &domainRepository{
+		BoltDB:     b,
+		BucketName: "domains",
+	}
+}
+
 func (b *Bolt) updateBucket(name string, update func(*bbolt.Bucket) error) error {
 	return b.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(name))
