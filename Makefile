@@ -57,6 +57,7 @@ race: ## Execute all tests with race detector enabled
 test-update: ## Execute all tests that have a -update flag defined.
 	$(GO) test ./pkg/certutil -update
 	$(GO) test ./pkg/db/internal/dbrecords -update
+	$(GO) test ./pkg/db/db -update
 
 .PHONY: lint
 lint:

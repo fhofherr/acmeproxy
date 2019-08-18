@@ -65,11 +65,7 @@ func TestMarshalAndUnmarshalClients(t *testing.T) {
 
 			keyFile := filepath.Join("testdata", t.Name(), tt.keyFile)
 			if *dbrecords.FlagUpdate {
-				pk := certutil.KeyMust(certutil.NewPrivateKey(tt.keyType))
-				err := certutil.WritePrivateKeyToFile(pk, keyFile, true)
-				if err != nil {
-					t.Fatalf("write private key: %v", err)
-				}
+				certutil.WritePrivateKeyForTesting(t, keyFile, tt.keyType, true)
 			}
 
 			client := &acme.Client{
