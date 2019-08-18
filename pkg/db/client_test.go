@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"path/filepath"
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
@@ -15,24 +14,15 @@ import (
 )
 
 func TestSaveNewClientToBoltDB(t *testing.T) {
-	tmpDir, tearDown := createTmpDir(t)
-	defer tearDown()
-
-	bolt := db.Bolt{
-		FilePath: filepath.Join(tmpDir, "test.db"),
-	}
-	err := bolt.Open()
-	if !assert.NoError(t, err) {
-		return
-	}
-	defer bolt.Close()
+	fx := db.NewDBTestFixture(t)
+	defer fx.Close()
 
 	expected := acme.Client{
 		ID:         uuid.Must(uuid.NewRandom()),
 		Key:        newPrivateKey(t),
 		AccountURL: "https://example.com/some/account",
 	}
-	clientRepository := bolt.ClientRepository()
+	clientRepository := fx.DB.ClientRepository()
 	actual, err := clientRepository.UpdateClient(expected.ID, func(c *acme.Client) error {
 		c.ID = expected.ID
 		c.Key = expected.Key
