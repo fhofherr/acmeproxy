@@ -11,9 +11,9 @@ DOCKER_COMPOSE := docker-compose
 HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
 
 BIN_DIR := bin
-BIN_DIR_LOCAL := $(BIN_DIR)/local
-BIN_DIR_LINUX_AMD64 := $(BIN_DIR)/linux/amd64
 BINARY_NAME := acmeproxy
+TARGET_ARCHITECTURES := local linux/amd64
+BINARY_FILES:=$(addsuffix /$(BINARY_NAME),$(addprefix $(BIN_DIR)/,$(TARGET_ARCHITECTURES)))
 
 SCRIPTS_DIR := scripts
 
@@ -93,31 +93,29 @@ endif
 $(PEBBLE_DIR):
 	git clone https://github.com/letsencrypt/pebble $@
 
-$(BIN_DIR_LOCAL):
-	mkdir -p $@
+# We use an inline shell script to make this rule easier to write.
+# See https://stackoverflow.com/a/29085684/86967
+$(BIN_DIR)/%/$(BINARY_NAME): $(GO_FILES)
+	@{ \
+	set -e ;\
+	GOBUILD="$(GO) build -o $@"; \
+	if [ "$*" != "local" ]; then \
+		goos="$$(echo $* | cut -d'/' -f1)"; \
+		goarch="$$(echo $* | cut -d'/' -f2)"; \
+		GOBUILD="GOOS=$$goos GOARCH=$$goarch $$GOBUILD"; \
+	fi; \
+	echo $$GOBUILD; \
+	eval $$GOBUILD; \
+	}
 
-$(BIN_DIR_LINUX_AMD64):
-	mkdir -p $@
-
-$(BIN_DIR_LOCAL)/$(BINARY_NAME): $(GO_FILES) | $(BIN_DIR_LOCAL)
-	$(GO) build -o $@
-
-$(BIN_DIR_LINUX_AMD64)/$(BINARY_NAME): $(GO_FILES) | $(BIN_DIR_LINUX_AMD64)
-	GOOS=linux GOARCH=amd64 $(GO) build -o $@
-
-.PHONY: build-local
-build-local: $(BIN_DIR_LOCAL)/$(BINARY_NAME)
-
-# TODO see if we can use make file rules once we need to crosscompile for other
-#      architectures.
-.PHONY: build-linux-amd64
-build-linux-amd64: $(BIN_DIR_LINUX_AMD64)/$(BINARY_NAME)
+.PHONY: build-local ## Build a binary for the local machine only
+build-local: $(BIN_DIR)/local/$(BINARY_NAME)
 
 .PHONY: build
-build: build-local build-linux-amd64
+build: $(BINARY_FILES) ## Build all binary files
 
 .PHONY: clean
-clean:
+clean: ## Remove all intermediate directories and files
 	rm -rf $(BIN_DIR)
 	rm -rf $(PEBBLE_DIR)
 	rm -rf $(COVERAGE_FILE)
