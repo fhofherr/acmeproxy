@@ -22,7 +22,7 @@ PEBBLE_DIR := .pebble
 COVERAGE_FILE := .coverage.out
 
 GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
-GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*")
+GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*" -not -path "*.pb.go")
 
 # -----------------------------------------------------------------------------
 
@@ -145,9 +145,9 @@ PROTOBUF_GO_FILES := $(patsubst %.proto,%.pb.go,$(PROTOBUF_SRC_FILES))
 %.pb.go: %.proto
 	$(PROTOC) -I=$(PWD) --go_out=$(PWD) $<
 
-.PHONY: protobuf
+.PHONY: pb
 pb: $(PROTOBUF_GO_FILES) ## Generate all *.pb.go files
 
-.PHONY: protobuf-clean
+.PHONY: pb-clean
 pb-clean: ## Remove all *.pb.go files
 	find . -iname '*.pb.go' -delete
