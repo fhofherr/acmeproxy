@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSaveNewClientToBoltDB(t *testing.T) {
+func TestSaveNewClient(t *testing.T) {
 	keyFile := filepath.Join("testdata", t.Name(), "private_key.pem")
 	if *db.FlagUpdate {
 		certutil.WritePrivateKeyForTesting(t, keyFile, certutil.EC256, true)
