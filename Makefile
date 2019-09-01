@@ -79,10 +79,10 @@ endif
 	@echo
 	@echo "Execute:"
 	@echo
-	@echo "\texport ACMEPROXY_PEBBLE_HOST=localhost"
-	@echo "\texport ACMEPROXY_PEBBLE_TEST_CERT=$(PWD)/$(PEBBLE_DIR)/test/certs/pebble.minica.pem"
-	@echo "\texport ACMEPROXY_PEBBLE_ACME_PORT=14000"
-	@echo "\texport ACMEPROXY_PEBBLE_MGMT_PORT=15000"
+	@echo "    export ACMEPROXY_PEBBLE_HOST=localhost"
+	@echo "    export ACMEPROXY_PEBBLE_TEST_CERT=$(PWD)/$(PEBBLE_DIR)/test/certs/pebble.minica.pem"
+	@echo "    export ACMEPROXY_PEBBLE_ACME_PORT=14000"
+	@echo "    export ACMEPROXY_PEBBLE_MGMT_PORT=15000"
 
 .PHONY: dev-env-down
 dev-env-down: ## Shut the local development environment down
