@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 )
@@ -34,6 +36,46 @@ const (
 	// RSA8192 represents an RSA key with a size of 8192 bits.
 	RSA8192
 )
+
+// DetermineKeyType inspects the passed key and returns the appropriate
+// KeyType. It returns an error if it could not determine the passed key
+// type. In this case the returned key type is wrong and has to be ignored.
+func DetermineKeyType(key crypto.PrivateKey) (KeyType, error) {
+	switch pk := key.(type) {
+	case *ecdsa.PrivateKey:
+		return determineECDSAKeyType(pk)
+	case *rsa.PrivateKey:
+		return determineRSAKeyType(pk)
+	default:
+		return -1, errors.New("unsupported key type")
+	}
+}
+
+func determineECDSAKeyType(pk *ecdsa.PrivateKey) (KeyType, error) {
+	curveName := pk.Curve.Params().Name
+	switch curveName {
+	case "P-256":
+		return EC256, nil
+	case "P-384":
+		return EC384, nil
+	default:
+		return -1, errors.Errorf("unsupported curve: %s", curveName)
+	}
+}
+
+func determineRSAKeyType(pk *rsa.PrivateKey) (KeyType, error) {
+	bitLen := pk.PublicKey.N.BitLen()
+	switch bitLen {
+	case 2048:
+		return RSA2048, nil
+	case 4096:
+		return RSA4096, nil
+	case 8192:
+		return RSA8192, nil
+	default:
+		return -1, errors.Errorf("unsupported bit length: %d", bitLen)
+	}
+}
 
 // NewPrivateKey creates a new private key for the specified key type.
 //
@@ -111,6 +153,22 @@ func parseRSAKey(bs []byte) (crypto.PrivateKey, error) {
 	return key, errors.Wrap(err, "parse RSA private key")
 }
 
+// ReadPrivateKeyFromFile reads a private key of type kt from the file
+// at the specified path. If pemDecode is true ReadPrivateKeyFromFile assumes
+// the key is PEM encoded and decodes it accordingly.
+func ReadPrivateKeyFromFile(kt KeyType, path string, pemDecode bool) (crypto.PrivateKey, error) {
+	keyReader, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "open key path")
+	}
+	defer keyReader.Close()
+	pk, err := ReadPrivateKey(kt, keyReader, pemDecode)
+	if err != nil {
+		return nil, errors.Wrap(err, "read key from file")
+	}
+	return pk, nil
+}
+
 // WritePrivateKey writes a private key to a file.
 //
 // WritePrivateKey returns an error if the writing the key to w fails or if
@@ -158,6 +216,25 @@ func pemEncodeBytes(typ string, bs []byte) ([]byte, error) {
 		return nil, errors.Wrap(err, "pem encode")
 	}
 	return buf.Bytes(), err
+}
+
+// WritePrivateKeyToFile writes the private key into the file given by path.
+//
+// If pemEncode is true it will PEM encode the private key before writing it.
+//
+// WritePrivateKeyToFile creates any missing intermediate directories.
+func WritePrivateKeyToFile(key crypto.PrivateKey, path string, pemEncode bool) error {
+	dir := filepath.Dir(path)
+	err := os.MkdirAll(dir, 0700)
+	if err != nil {
+		return errors.Wrap(err, "create directories")
+	}
+	w, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return errors.Wrap(err, "create key file")
+	}
+	defer w.Close()
+	return WritePrivateKey(key, w, pemEncode)
 }
 
 // KeyMust panics err != nil. It returns key otherwise.

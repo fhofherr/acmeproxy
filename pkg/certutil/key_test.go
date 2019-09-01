@@ -2,7 +2,6 @@ package certutil_test
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -36,8 +35,15 @@ func TestNewPrivateKey(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			actual, err := certutil.NewPrivateKey(tt.keyType)
-			assert.NoError(t, err)
+			if !assert.NoError(t, err) {
+				return
+			}
+			keyType, err := certutil.DetermineKeyType(actual)
+			if !assert.NoError(t, err) {
+				return
+			}
 			assert.IsType(t, tt.expectedType, actual)
+			assert.Equal(t, tt.keyType, keyType)
 		})
 	}
 }
@@ -143,7 +149,8 @@ func TestWritePrivateKey(t *testing.T) {
 	// Create tmpDir before we iterate over our test cases. This way the tmpDir
 	// has the test function's name as prefix and does not contain the test
 	// cases names.
-	tmpDir, err := ioutil.TempDir("", t.Name())
+	tmpDir, tearDown := createTmpDir(t)
+	defer tearDown()
 
 	for _, tt := range tests {
 		tt := tt
@@ -152,10 +159,7 @@ func TestWritePrivateKey(t *testing.T) {
 			if *certutil.FlagUpdate {
 				certutil.CreateOpenSSLPrivateKey(t, srcKeyPath)
 			}
-			if err != nil {
-				t.Fatalf("create temporary directory: %v", tmpDir)
-			}
-			pk := readPrivateKeyFromFile(t, tt.keyType, srcKeyPath, tt.pemEncode)
+			pk := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(tt.keyType, srcKeyPath, tt.pemEncode))
 			targetKeyPath := filepath.Join(tmpDir, tt.name)
 			w, err := os.Create(targetKeyPath)
 			if err != nil {
@@ -179,19 +183,6 @@ func (e *errorReader) Read([]byte) (int, error) {
 	return 0, e.Err
 }
 
-func readPrivateKeyFromFile(t *testing.T, kt certutil.KeyType, keyPath string, pemDecode bool) crypto.PrivateKey {
-	keyReader, err := os.Open(keyPath)
-	if err != nil {
-		t.Fatalf("open key path: %v", err)
-	}
-	defer keyReader.Close()
-	pk, err := certutil.ReadPrivateKey(kt, keyReader, pemDecode)
-	if err != nil {
-		t.Fatalf("read key from file: %v", err)
-	}
-	return pk
-}
-
 func sha256SumFile(t *testing.T, path string) []byte {
 	r, err := os.Open(path)
 	if err != nil {
@@ -204,4 +195,16 @@ func sha256SumFile(t *testing.T, path string) []byte {
 	}
 	hash := sha256.Sum256(bs)
 	return hash[:]
+}
+
+func createTmpDir(t *testing.T) (string, func()) {
+	tmpDir, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tmpDir, func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Error(err)
+		}
+	}
 }

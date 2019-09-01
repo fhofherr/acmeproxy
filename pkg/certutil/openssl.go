@@ -1,6 +1,7 @@
 package certutil
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,10 +21,11 @@ func CreateOpenSSLPrivateKey(t *testing.T, keyPath string) {
 	if err != nil {
 		t.Fatalf("failed to create target directory: %v", err)
 	}
+	// TODO(fhofherr) this should not depend on the file name but on a passed key type.
 	if strings.HasPrefix(keyFile, "ec") {
 		createOpenSSLECPrivateKey(t, dir, keyFile)
 	} else {
-		creteOpenSSLRSAPrivateKey(t, dir, keyFile)
+		createOpenSSLRSAPrivateKey(t, dir, keyFile)
 	}
 }
 
@@ -46,7 +48,7 @@ func createOpenSSLECPrivateKey(t *testing.T, dir, keyFile string) {
 	openssl(t, argv...)
 }
 
-func creteOpenSSLRSAPrivateKey(t *testing.T, dir, keyFile string) {
+func createOpenSSLRSAPrivateKey(t *testing.T, dir, keyFile string) {
 	pemOk := true
 	targetFile := filepath.Join(dir, keyFile)
 	if filepath.Ext(keyFile) != ".pem" {
@@ -73,6 +75,27 @@ func creteOpenSSLRSAPrivateKey(t *testing.T, dir, keyFile string) {
 			t.Errorf("failed to remove temp file: %v", err)
 		}
 	}
+}
+
+// CreateOpenSSLSelfSignedCertificate creates a self-signed certificate using
+// OpenSSL.
+//
+// This is especially useful for testing: in order to test reading certificate
+// files we need such files. Writing them with our own code seems awkward.
+// Therefore we use openssl to write those files. The files are checked into
+// version control to allow the tests to succeed on systems where openssl is
+// not available.
+func CreateOpenSSLSelfSignedCertificate(t *testing.T, commonName, keyFile, certFile string, pemEncode bool) {
+	argv := make([]string, 0, 13)
+	argv = append(argv, "req", "-x509", "-key", keyFile, "-new",
+		"-out", certFile, "-days", "36500",
+		"-subj", fmt.Sprintf("/CN=%s", commonName))
+	if pemEncode {
+		argv = append(argv, "-outform", "pem")
+	} else {
+		argv = append(argv, "-outform", "der")
+	}
+	openssl(t, argv...)
 }
 
 func openssl(t *testing.T, argv ...string) {

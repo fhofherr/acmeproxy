@@ -7,6 +7,7 @@ GO := go
 GOLINT := golint
 GOLANGCI_LINT := golangci-lint
 DOCKER_COMPOSE := docker-compose
+PROTOC := protoc
 
 HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
 
@@ -21,8 +22,9 @@ PEBBLE_DIR := .pebble
 COVERAGE_FILE := .coverage.out
 
 GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
-GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*")
+GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*" -not -path "*.pb.go")
 
+# -----------------------------------------------------------------------------
 
 .PHONY: all
 all: documentation lint test build
@@ -54,6 +56,8 @@ race: ## Execute all tests with race detector enabled
 .PHONY: test-update
 test-update: ## Execute all tests that have a -update flag defined.
 	$(GO) test ./pkg/certutil -update
+	$(GO) test ./pkg/db/internal/dbrecords -update
+	$(GO) test ./pkg/db/db -update
 
 .PHONY: lint
 lint:
@@ -75,10 +79,10 @@ endif
 	@echo
 	@echo "Execute:"
 	@echo
-	@echo "\texport ACMEPROXY_PEBBLE_HOST=localhost"
-	@echo "\texport ACMEPROXY_PEBBLE_TEST_CERT=$(PWD)/$(PEBBLE_DIR)/test/certs/pebble.minica.pem"
-	@echo "\texport ACMEPROXY_PEBBLE_ACME_PORT=14000"
-	@echo "\texport ACMEPROXY_PEBBLE_MGMT_PORT=15000"
+	@echo "    export ACMEPROXY_PEBBLE_HOST=localhost"
+	@echo "    export ACMEPROXY_PEBBLE_TEST_CERT=$(PWD)/$(PEBBLE_DIR)/test/certs/pebble.minica.pem"
+	@echo "    export ACMEPROXY_PEBBLE_ACME_PORT=14000"
+	@echo "    export ACMEPROXY_PEBBLE_MGMT_PORT=15000"
 
 .PHONY: dev-env-down
 dev-env-down: ## Shut the local development environment down
@@ -123,3 +127,27 @@ clean: ## Remove all intermediate directories and files
 .PHONY: help
 help: ## Display this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
+# -----------------------------------------------------------------------------
+#
+# Protocol Buffers
+#
+# The targets below are not added as dependencies to any of the other targets.
+# All *.pb.go files are checked into version controll to ensure the module can
+# be built even if protoc is not installed. Therefore those targets should only
+# be called explicitly if needed.
+#
+# -----------------------------------------------------------------------------
+PROTOBUF_SRC_FILES := $(shell find . -iname '*.proto')
+PROTOBUF_GO_FILES := $(patsubst %.proto,%.pb.go,$(PROTOBUF_SRC_FILES))
+
+%.pb.go: %.proto
+	$(PROTOC) -I=$(PWD) --go_out=$(PWD) $<
+
+.PHONY: pb
+pb: $(PROTOBUF_GO_FILES) ## Generate all *.pb.go files
+
+.PHONY: pb-clean
+pb-clean: ## Remove all *.pb.go files
+	find . -iname '*.pb.go' -delete
