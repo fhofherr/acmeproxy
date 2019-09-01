@@ -27,7 +27,7 @@ func (r *clientRepository) UpdateClient(id uuid.UUID, f func(*acme.Client) error
 	}
 
 	err = r.BoltDB.updateBucket(r.BucketName, func(bucket *bbolt.Bucket) error {
-		err = readClientFromBucket(bucket, idBytes, &client)
+		err = r.BoltDB.readRecord(bucket, idBytes, &client)
 		if err != nil {
 			return errors.Wrap(err, "read current client record")
 		}
@@ -48,35 +48,14 @@ func (r *clientRepository) UpdateClient(id uuid.UUID, f func(*acme.Client) error
 //
 // If the client could not be found the acme.Client zero value is returned.
 func (r *clientRepository) GetClient(id uuid.UUID) (acme.Client, error) {
-	var (
-		client  acme.Client
-		idBytes []byte
-		err     error
-	)
+	var client acme.Client
 
-	idBytes, err = dbrecords.Marshal(id)
+	idBytes, err := dbrecords.Marshal(id)
 	if err != nil {
 		return client, errors.Wrap(err, "marshal client id")
 	}
-
-	err = r.BoltDB.updateBucket(r.BucketName, func(bucket *bbolt.Bucket) error {
-		err = readClientFromBucket(bucket, idBytes, &client)
-		return errors.Wrapf(err, "read client from db: %v", id)
+	err = r.BoltDB.viewBucket(r.BucketName, func(bucket *bbolt.Bucket) error {
+		return r.BoltDB.readRecord(bucket, idBytes, &client)
 	})
-
 	return client, errors.Wrapf(err, "get client: %v", id)
-}
-
-// readClientFromBucket attempts to read a client with the passed ID from the
-// bucket. It does nothing if the client could not be found.
-func readClientFromBucket(bucket *bbolt.Bucket, idBytes []byte, client *acme.Client) error {
-	bs := bucket.Get(idBytes)
-	if bs == nil {
-		return nil
-	}
-	err := dbrecords.Unmarshal(bs, client)
-	if err != nil {
-		return errors.Wrap(err, "unmarshal record")
-	}
-	return nil
 }

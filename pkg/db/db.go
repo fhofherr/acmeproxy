@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
+	"github.com/fhofherr/acmeproxy/pkg/db/internal/dbrecords"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 )
@@ -76,6 +77,16 @@ func (b *Bolt) DomainRepository() acme.DomainRepository {
 	}
 }
 
+func (b *Bolt) viewBucket(name string, view func(bucket *bbolt.Bucket) error) error {
+	return b.db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(name))
+		if bucket == nil {
+			return nil
+		}
+		return view(bucket)
+	})
+}
+
 func (b *Bolt) updateBucket(name string, update func(*bbolt.Bucket) error) error {
 	return b.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(name))
@@ -84,4 +95,18 @@ func (b *Bolt) updateBucket(name string, update func(*bbolt.Bucket) error) error
 		}
 		return update(bucket)
 	})
+}
+
+// readRecord reads a record identified by idBytes from the bbolt.Bucket. It
+// does nothing if the record could not be found.
+func (b *Bolt) readRecord(bucket *bbolt.Bucket, idBytes []byte, target interface{}) error {
+	bs := bucket.Get(idBytes)
+	if bs == nil {
+		return nil
+	}
+	err := dbrecords.Unmarshal(bs, target)
+	if err != nil {
+		return errors.Wrap(err, "unmarshal record")
+	}
+	return nil
 }

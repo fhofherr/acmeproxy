@@ -14,9 +14,8 @@ type domainRepository struct {
 
 // UpdateDomain updates a domain within the bolt database.
 func (d *domainRepository) UpdateDomain(domainName string, f func(d *acme.Domain) error) (acme.Domain, error) {
-	var (
-		domain acme.Domain
-	)
+	var domain acme.Domain
+
 	err := d.BoltDB.updateBucket(d.BucketName, func(bucket *bbolt.Bucket) error {
 		err := f(&domain)
 		if err != nil {
@@ -31,6 +30,15 @@ func (d *domainRepository) UpdateDomain(domainName string, f func(d *acme.Domain
 	return domain, errors.Wrap(err, "update domain")
 }
 
-func (d *domainRepository) GetDomain(string) (acme.Domain, error) {
-	panic("implement me")
+// GetDomain reads the domain with the passed domainName from the domain
+// repository.
+//
+// If the domain does not exist the acme.Domain zero value is returned.
+func (d *domainRepository) GetDomain(domainName string) (acme.Domain, error) {
+	var domain acme.Domain
+	idBytes := []byte(domainName)
+	err := d.BoltDB.viewBucket(d.BucketName, func(bucket *bbolt.Bucket) error {
+		return d.BoltDB.readRecord(bucket, idBytes, &domain)
+	})
+	return domain, errors.Wrap(err, "read domain from bucket")
 }
