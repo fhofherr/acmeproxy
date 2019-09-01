@@ -26,7 +26,7 @@ func (ac *InMemoryAccountCreator) CreateAccount(key crypto.PrivateKey, email str
 	if ac.accounts == nil {
 		ac.accounts = make(map[string]*fakeAccountData)
 	}
-	accountURL := fmt.Sprintf("https://acme.example.com/directory/%d", rand.Int())
+	accountURL := fmt.Sprintf("https://acme.example.com/directory/%d", rand.Int()) //nolint:gosec
 	ac.accounts[accountURL] = &fakeAccountData{
 		Key:   key,
 		Email: email,
