@@ -36,6 +36,7 @@ func TestSaveNewClient(t *testing.T) {
 
 	saved, err := clientRepository.GetClient(expected.ID)
 	assert.NoError(t, err)
+	assert.Equal(t, expected, actual)
 	assert.Equal(t, expected, saved)
 }
 
