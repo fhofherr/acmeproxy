@@ -1,0 +1,36 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+---
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.12.9
+        environment:
+          GO111MODULE: "on"
+          ACMEPROXY_PEBBLE_HOST: localhost
+          ACMEPROXY_PEBBLE_TEST_CERT: /go/src/github.com/fhofherr/acmeproxy/.pebble/test/certs/pebble.minica.pem
+          ACMEPROXY_PEBBLE_ACME_PORT: 14000
+          ACMEPROXY_PEBBLE_MGMT_PORT: 15000
+
+      # Specify service dependencies here if necessary
+      - image: letsencrypt/pebble:latest
+        environment:
+          PEBBLE_VA_NOSLEEP: 1
+        command: pebble -config /test/config/pebble-config.json -strict -dnsserver 127.0.0.1:8053
+
+      - image: letsencrypt/pebble-challtestsrv:latest
+        command: pebble-challtestsrv -defaultIPv6 "" -defaultIPv4 "127.0.0.1" -http01 "" -https01 ""
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    working_directory: /go/src/github.com/fhofherr/acmeproxy
+    steps:
+      - checkout
+      - run: go get github.com/mattn/goveralls
+      - run: make .pebble test
+      - run: /go/bin/goveralls -coverprofile=.coverage.out -service=circle-ci -repotoken=$COVERALLS_REPO_TOKEN

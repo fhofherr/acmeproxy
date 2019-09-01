@@ -6,6 +6,8 @@ compliant](https://tools.ietf.org/html/rfc8555) certificate authorities.
 [![GoDoc](https://godoc.org/github.com/fhofherr/acmeproxy?status.svg)](https://godoc.org/github.com/fhofherr/acmeproxy)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fhofherr/acmeproxy)](https://goreportcard.com/report/github.com/fhofherr/acmeproxy)
 [![GolangCI](https://golangci.com/badges/github.com/fhofherr/acmeproxy.svg)](https://golangci.com/r/github.com/fhofherr/acmeproxy)
+[![CircleCI](https://circleci.com/gh/fhofherr/acmeproxy.svg?style=svg)](https://circleci.com/gh/fhofherr/acmeproxy)
+[![Coverage Status](https://coveralls.io/repos/github/fhofherr/acmeproxy/badge.svg)](https://coveralls.io/github/fhofherr/acmeproxy)
 
 ## Purpose
 

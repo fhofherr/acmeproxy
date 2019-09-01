@@ -7,9 +7,7 @@ version: '3.7'
 services:
 
   pebble:
-    build:
-      context: ../.pebble
-      dockerfile: docker/pebble/linux.Dockerfile
+    image: letsencrypt/pebble:latest
     environment:
       PEBBLE_VA_NOSLEEP: 1
     command: pebble -config /test/config/pebble-config.json -strict -dnsserver 10.30.50.3:8053
@@ -21,9 +19,7 @@ services:
         ipv4_address: 10.30.50.2
 
   challtestsrv:
-    build:
-      context: ../.pebble
-      dockerfile: docker/pebble-challtestsrv/linux.Dockerfile
+    image: letsencrypt/pebble-challtestsrv:latest
     command: pebble-challtestsrv -defaultIPv6 "" -defaultIPv4 "${HOST_IP}"
     ports:
       - 8055:8055  # HTTP Management API
