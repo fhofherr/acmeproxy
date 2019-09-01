@@ -58,7 +58,7 @@ type ClientRepository interface {
 
 // Client represents a client of the Agent.
 //
-// TODO(fhofherr) consider renaming Client to User or somethign better. Client
+// TODO(fhofherr) consider renaming Client to User or something better. Client
 //                clashes with the ACME client.
 type Client struct {
 	ID         uuid.UUID         // Unique identifier of the client.
