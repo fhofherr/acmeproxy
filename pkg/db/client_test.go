@@ -39,4 +39,34 @@ func TestSaveNewClient(t *testing.T) {
 	assert.Equal(t, expected, saved)
 }
 
-// TODO(fhofherr) test update client
+func TestUpdateClient(t *testing.T) {
+	initialKeyFile := filepath.Join("testdata", t.Name(), "private_key.pem")
+	if *db.FlagUpdate {
+		certutil.WritePrivateKeyForTesting(t, initialKeyFile, certutil.EC256, true)
+	}
+	fx := db.NewDBTestFixture(t)
+	defer fx.Close()
+
+	clientRepository := fx.DB.ClientRepository()
+
+	clientID := uuid.Must(uuid.NewRandom())
+	initialURL := "https://example.com/some/new-account"
+	key := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(certutil.EC256, initialKeyFile, true))
+	_, err := clientRepository.UpdateClient(clientID, func(c *acme.Client) error {
+		c.ID = clientID
+		c.Key = key
+		c.AccountURL = initialURL
+		return nil
+	})
+	assert.NoError(t, err)
+
+	changedURL := "https://example.com/smoe/changed-account"
+	actual, err := clientRepository.UpdateClient(clientID, func(c *acme.Client) error {
+		c.AccountURL = changedURL
+		return nil
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, changedURL, actual.AccountURL)
+	assert.Equal(t, clientID, actual.ID)
+	assert.Equal(t, key, actual.Key)
+}
