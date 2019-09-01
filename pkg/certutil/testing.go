@@ -60,7 +60,9 @@ func CreateSelfSignedCertificate(t *testing.T, cn string, pk crypto.PrivateKey) 
 // WriteCertificateForTesting creates and writes a self-signed certificate for
 // use during unit tests. See CreateSelfSignedCertificate for details about
 // how the certificate is created.
-func WriteCertificateForTesting(t *testing.T, certFile string, cn string, pk crypto.PrivateKey, pemEncode bool) *x509.Certificate {
+func WriteCertificateForTesting(
+	t *testing.T, certFile string, cn string, pk crypto.PrivateKey, pemEncode bool,
+) *x509.Certificate {
 	cert := CreateSelfSignedCertificate(t, cn, pk)
 	err := WriteCertificateToFile(cert, certFile, pemEncode)
 	if err != nil {
