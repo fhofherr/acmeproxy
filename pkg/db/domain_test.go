@@ -40,6 +40,7 @@ func TestSaveNewDomain(t *testing.T) {
 		d.PrivateKey = domain.PrivateKey
 		return nil
 	})
+	assert.NoError(t, err)
 	saved, err := domainRepository.GetDomain(domainName)
 	assert.NoError(t, err)
 	assert.Equal(t, domain, actual)
