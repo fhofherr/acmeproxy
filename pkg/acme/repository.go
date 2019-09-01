@@ -41,11 +41,6 @@ func (d DomainNotFound) Error() string {
 	return fmt.Sprintf("domain not found: %s", d.DomainName)
 }
 
-func isDomainNotFound(err error) bool {
-	_, ok := err.(DomainNotFound)
-	return ok
-}
-
 // ClientRepository persists and retrieves information about the clients of
 // the Agent.
 //
