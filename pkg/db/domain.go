@@ -17,7 +17,12 @@ func (d *domainRepository) UpdateDomain(domainName string, f func(d *acme.Domain
 	var domain acme.Domain
 
 	err := d.BoltDB.updateBucket(d.BucketName, func(bucket *bbolt.Bucket) error {
-		err := f(&domain)
+		idBytes := []byte(domainName)
+		err := d.BoltDB.readRecord(bucket, idBytes, &domain)
+		if err != nil {
+			return errors.Wrap(err, "read existing domain record")
+		}
+		err = f(&domain)
 		if err != nil {
 			return errors.Wrap(err, "apply update func to domain")
 		}
