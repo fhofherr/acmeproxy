@@ -11,14 +11,27 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Marshal marshals the passed domain object into a byte slice suitable
+// MarshalBinary marshals the passed domain object into a byte slice suitable
 // for storing it into the acmeproxy database.
-func Marshal(v interface{}) ([]byte, error) {
-	var (
-		bs []byte
-		m  = &marshaller{}
-	)
-	switch obj := v.(type) {
+func MarshalBinary(v interface{}) ([]byte, error) {
+	m := &BinaryMarshaller{V: v}
+	return m.MarshalBinary()
+}
+
+// BinaryMarshaller wraps a value V and provides a binary representation of value.
+// Once the BinaryMarshaller was used to create a binary representation of V it
+// must not be reused.
+type BinaryMarshaller struct {
+	V   interface{}
+	err error
+}
+
+// MarshalBinary creates a binary representation of the object wrapped by
+// the BinaryMarshaller.
+func (m *BinaryMarshaller) MarshalBinary() ([]byte, error) {
+	var bs []byte
+
+	switch obj := m.V.(type) {
 	case *acme.Client:
 		bs = m.marshalACMEClient(obj)
 	case acme.Client:
@@ -29,17 +42,18 @@ func Marshal(v interface{}) ([]byte, error) {
 		bs = m.marshalACMEDomain(&obj)
 	case uuid.UUID:
 		bs = m.marshalUUID(obj)
+	case string:
+		bs = []byte(obj)
+	case *string:
+		bs = []byte(*obj)
 	default:
-		return nil, errors.Errorf("unsupported type: %T", v)
+		return nil, errors.Errorf("unsupported type: %T", m.V)
 	}
-	return bs, errors.Wrapf(m.Err, "marshal type: %T", v)
+	return bs, errors.Wrapf(m.err, "marshal type: %T", m.V)
+
 }
 
-type marshaller struct {
-	Err error
-}
-
-func (m *marshaller) marshalUUID(id uuid.UUID) []byte {
+func (m *BinaryMarshaller) marshalUUID(id uuid.UUID) []byte {
 	var (
 		bs  []byte
 		err error
@@ -51,7 +65,7 @@ func (m *marshaller) marshalUUID(id uuid.UUID) []byte {
 	return bs
 }
 
-func (m *marshaller) marshalACMEClient(client *acme.Client) []byte {
+func (m *BinaryMarshaller) marshalACMEClient(client *acme.Client) []byte {
 	idBytes := m.marshalUUID(client.ID)
 	kt, keyBytes := m.marshalPrivateKey(client.Key)
 	rec := Client{
@@ -65,7 +79,7 @@ func (m *marshaller) marshalACMEClient(client *acme.Client) []byte {
 	return m.marshalPB(&rec)
 }
 
-func (m *marshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyType, []byte) {
+func (m *BinaryMarshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyType, []byte) {
 	var (
 		certutilKt certutil.KeyType
 		kt         keyType
@@ -87,7 +101,7 @@ func (m *marshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyType, [
 	return kt, buf.Bytes()
 }
 
-func (m *marshaller) marshalACMEDomain(d *acme.Domain) []byte {
+func (m *BinaryMarshaller) marshalACMEDomain(d *acme.Domain) []byte {
 	idBytes := m.marshalUUID(d.ClientID)
 	rec := Domain{
 		ClientID:       idBytes,
@@ -98,7 +112,7 @@ func (m *marshaller) marshalACMEDomain(d *acme.Domain) []byte {
 	return m.marshalPB(&rec)
 }
 
-func (m *marshaller) marshalPB(msg proto.Message) []byte {
+func (m *BinaryMarshaller) marshalPB(msg proto.Message) []byte {
 	var bs []byte
 	m.do(func() error {
 		var err error
@@ -108,9 +122,9 @@ func (m *marshaller) marshalPB(msg proto.Message) []byte {
 	return bs
 }
 
-func (m *marshaller) do(op func() error) {
-	if m.Err != nil {
+func (m *BinaryMarshaller) do(op func() error) {
+	if m.err != nil {
 		return
 	}
-	m.Err = op()
+	m.err = op()
 }

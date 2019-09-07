@@ -14,12 +14,49 @@ import (
 
 func TestMarshalAndUnmarshalUUID(t *testing.T) {
 	id := uuid.Must(uuid.NewRandom())
-	bs, err := dbrecords.Marshal(id)
+	bs, err := dbrecords.MarshalBinary(id)
 	assert.NoError(t, err)
 	actual := uuid.UUID{}
-	err = dbrecords.Unmarshal(bs, &actual)
+	err = dbrecords.UnmarshalBinary(bs, &actual)
 	assert.NoError(t, err)
 	assert.Equal(t, id, actual)
+}
+
+func TestMarshalAndUnmarshalString(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected string
+		convert  func(string) interface{}
+	}{
+		{
+			name:     "string",
+			expected: "some string",
+			convert: func(s string) interface{} {
+				return s
+			},
+		},
+		{
+			name:     "*string",
+			expected: "some string pointer",
+			convert: func(s string) interface{} {
+				return &s
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var actual string
+
+			bs, err := dbrecords.MarshalBinary(tt.convert(tt.expected))
+			if !assert.NoError(t, err) {
+				return
+			}
+			err = dbrecords.UnmarshalBinary(bs, &actual)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
 }
 
 func TestMarshalAndUnmarshalClients(t *testing.T) {
@@ -78,12 +115,12 @@ func TestMarshalAndUnmarshalClients(t *testing.T) {
 			if tt.toSource != nil {
 				source = tt.toSource(client)
 			}
-			bs, err := dbrecords.Marshal(source)
+			bs, err := dbrecords.MarshalBinary(source)
 			if !assert.NoError(t, err) {
 				return
 			}
 			target := &acme.Client{}
-			err = dbrecords.Unmarshal(bs, target)
+			err = dbrecords.UnmarshalBinary(bs, target)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -139,10 +176,10 @@ func TestMarshalAndUnmarshalDomain(t *testing.T) {
 			if tt.toSource != nil {
 				source = tt.toSource(domain)
 			}
-			bs, err := dbrecords.Marshal(source)
+			bs, err := dbrecords.MarshalBinary(source)
 			assert.NoError(t, err)
 			target := &acme.Domain{}
-			err = dbrecords.Unmarshal(bs, target)
+			err = dbrecords.UnmarshalBinary(bs, target)
 			assert.NoError(t, err)
 			assertDomainObjectsEqual(t, domain, target)
 		})

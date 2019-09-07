@@ -21,7 +21,7 @@ func TestSaveNewDomain(t *testing.T) {
 		certutil.WriteCertificateForTesting(t, certFile, domainName, pk, true)
 	}
 
-	fx := db.NewDBTestFixture(t)
+	fx := db.NewTestFixture(t)
 	defer fx.Close()
 	domainRepository := fx.DB.DomainRepository()
 
@@ -60,7 +60,7 @@ func TestUpdateDomain(t *testing.T) {
 		certutil.WriteCertificateForTesting(t, updatedCertFile, domainName, pk, true)
 	}
 
-	fx := db.NewDBTestFixture(t)
+	fx := db.NewTestFixture(t)
 	defer fx.Close()
 	domainRepository := fx.DB.DomainRepository()
 
