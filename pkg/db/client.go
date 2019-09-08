@@ -5,7 +5,6 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/db/internal/dbrecords"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"go.etcd.io/bbolt"
 )
 
 type clientRepository struct {
@@ -16,30 +15,17 @@ type clientRepository struct {
 // UpdateClient updates a client within the bolt database.
 func (r *clientRepository) UpdateClient(id uuid.UUID, f func(*acme.Client) error) (acme.Client, error) {
 	var (
-		client  acme.Client
-		idBytes []byte
-		err     error
+		client acme.Client
+		err    error
 	)
 
-	idBytes, err = dbrecords.Marshal(id)
-	if err != nil {
-		return client, errors.Wrap(err, "marshal client id")
-	}
-
-	err = r.BoltDB.updateBucket(r.BucketName, func(bucket *bbolt.Bucket) error {
-		err = r.BoltDB.readRecord(bucket, idBytes, &client)
-		if err != nil {
-			return errors.Wrap(err, "read current client record")
-		}
-		err = f(&client)
-		if err != nil {
-			return errors.Wrap(err, "apply update func to client")
-		}
-		bs, err := dbrecords.Marshal(&client)
-		if err != nil {
-			return errors.Wrapf(err, "marshal client")
-		}
-		return errors.Wrapf(bucket.Put(idBytes, bs), "save client: %v", id)
+	err = r.BoltDB.updateBucket(r.BucketName, func(b *bucket) error {
+		b.readRecord(id, &dbrecords.BinaryUnmarshaller{V: &client})
+		b.do(func() error {
+			return f(&client)
+		})
+		b.writeRecord(id, &dbrecords.BinaryMarshaller{V: &client})
+		return b.Err
 	})
 	return client, errors.Wrapf(err, "update client: %v", id)
 }
@@ -50,12 +36,12 @@ func (r *clientRepository) UpdateClient(id uuid.UUID, f func(*acme.Client) error
 func (r *clientRepository) GetClient(id uuid.UUID) (acme.Client, error) {
 	var client acme.Client
 
-	idBytes, err := dbrecords.Marshal(id)
-	if err != nil {
-		return client, errors.Wrap(err, "marshal client id")
-	}
-	err = r.BoltDB.viewBucket(r.BucketName, func(bucket *bbolt.Bucket) error {
-		return r.BoltDB.readRecord(bucket, idBytes, &client)
+	err := r.BoltDB.viewBucket(r.BucketName, func(b *bucket) error {
+		id := &dbrecords.BinaryMarshaller{V: id}
+		target := &dbrecords.BinaryUnmarshaller{V: &client}
+		b.readRecord(id, target)
+		return nil
 	})
+
 	return client, errors.Wrapf(err, "get client: %v", id)
 }

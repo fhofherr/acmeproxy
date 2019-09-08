@@ -1,3 +1,4 @@
+*.bak
 .coverage.out
 
 .pebble/

@@ -8,6 +8,7 @@ GOLINT := golint
 GOLANGCI_LINT := golangci-lint
 DOCKER_COMPOSE := docker-compose
 PROTOC := protoc
+SED := sed
 
 HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
 
@@ -39,7 +40,9 @@ $(COVERAGE_FILE): $(GO_FILES)
 # would instrument dependencies as well.
 #
 # See https://golang.org/doc/go1.10#test
-	@$(GO) test -race -covermode=atomic -coverprofile=$(COVERAGE_FILE) -coverpkg=$(GO_PACKAGES) ./... 2> /dev/null
+	@$(GO) test -race -covermode=atomic -coverprofile=$@ -coverpkg=$(GO_PACKAGES) ./... 2> /dev/null
+	$(SED) -i.bak '/\.pb\.go/d' $@
+	$(SED) -i.bak '/testing\.go/d' $@
 
 .PHONY: coverage
 coverage: $(COVERAGE_FILE) ## Compute and display the current total code coverage
@@ -123,6 +126,7 @@ clean: ## Remove all intermediate directories and files
 	rm -rf $(BIN_DIR)
 	rm -rf $(PEBBLE_DIR)
 	rm -rf $(COVERAGE_FILE)
+	rm -rf $(COVERAGE_FILE).bak
 
 .PHONY: help
 help: ## Display this help message

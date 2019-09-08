@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestCreateNewBoltDB(t *testing.T) {
-	tmpDir, tearDown := createTmpDir(t)
+	tmpDir, tearDown := db.CreateTmpDir(t)
 	defer tearDown()
 
 	tests := []struct {
@@ -53,7 +52,7 @@ func TestCreateNewBoltDB(t *testing.T) {
 }
 
 func TestTargetDirectoryNotWritable(t *testing.T) {
-	tmpDir, tearDown := createTmpDir(t)
+	tmpDir, tearDown := db.CreateTmpDir(t)
 	defer tearDown()
 	notWritable := filepath.Join(tmpDir, "not_writable")
 	err := os.Mkdir(notWritable, 0500)
@@ -88,7 +87,7 @@ func TestTargetDirectoryNotWritable(t *testing.T) {
 }
 
 func TestOpenDBTwice(t *testing.T) {
-	tmpDir, tearDown := createTmpDir(t)
+	tmpDir, tearDown := db.CreateTmpDir(t)
 	defer tearDown()
 	boltDB := db.Bolt{FilePath: filepath.Join(tmpDir, "test.db")}
 	assert.NoError(t, boltDB.Open())
@@ -96,20 +95,8 @@ func TestOpenDBTwice(t *testing.T) {
 }
 
 func TestCloseNonOpenDB(t *testing.T) {
-	tmpDir, tearDown := createTmpDir(t)
+	tmpDir, tearDown := db.CreateTmpDir(t)
 	defer tearDown()
 	boltDB := db.Bolt{FilePath: filepath.Join(tmpDir, "test.db")}
 	assert.NoError(t, boltDB.Close())
-}
-
-func createTmpDir(t *testing.T) (string, func()) {
-	tmpDir, err := ioutil.TempDir("", t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return tmpDir, func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
-			t.Error(err)
-		}
-	}
 }

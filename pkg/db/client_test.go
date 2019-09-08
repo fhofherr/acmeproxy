@@ -16,7 +16,7 @@ func TestSaveNewClient(t *testing.T) {
 	if *db.FlagUpdate {
 		certutil.WritePrivateKeyForTesting(t, keyFile, certutil.EC256, true)
 	}
-	fx := db.NewDBTestFixture(t)
+	fx := db.NewTestFixture(t)
 	defer fx.Close()
 
 	expected := acme.Client{
@@ -45,7 +45,7 @@ func TestUpdateClient(t *testing.T) {
 	if *db.FlagUpdate {
 		certutil.WritePrivateKeyForTesting(t, initialKeyFile, certutil.EC256, true)
 	}
-	fx := db.NewDBTestFixture(t)
+	fx := db.NewTestFixture(t)
 	defer fx.Close()
 
 	clientRepository := fx.DB.ClientRepository()

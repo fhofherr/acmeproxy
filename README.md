@@ -180,6 +180,27 @@ To shut down the test environment issue:
 make dev-env-down
 ```
 
+#### Firewall configuration
+
+For the tests it is necessary that the instance of pebble running in
+Docker is able to access the test server running on your host machine.
+If you have a firewall it must allow access to port `5002`.
+
+Furthermore the firewall must forward packages to the internal network
+created by docker compose.
+
+For `nftables` execute the following prior to executing the tests for
+the first time.
+
+```sh
+sudo nft insert rule inet filter input tcp dport 5002 accept
+sudo nft insert rule inet filter forward ip daddr 10.30.50.0/24 accept
+```
+
+The commands above assume you have a table called `filter` for the
+`inet` address family. The `filter` table must define two chains
+`input` and `forward`.
+
 ### Linter
 
 `acmeproxy` uses GolangCI. The full report can be found
