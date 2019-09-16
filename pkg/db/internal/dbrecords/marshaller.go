@@ -3,12 +3,13 @@ package dbrecords
 import (
 	"bytes"
 	"crypto"
+	fmt "fmt"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 // MarshalBinary marshals the passed domain object into a byte slice suitable
@@ -29,6 +30,7 @@ type BinaryMarshaller struct {
 // MarshalBinary creates a binary representation of the object wrapped by
 // the BinaryMarshaller.
 func (m *BinaryMarshaller) MarshalBinary() ([]byte, error) {
+	const op errors.Op = "dbrecords/binaryMarshaller.MarshalBinary"
 	var bs []byte
 
 	switch obj := m.V.(type) {
@@ -47,20 +49,26 @@ func (m *BinaryMarshaller) MarshalBinary() ([]byte, error) {
 	case *string:
 		bs = []byte(*obj)
 	default:
-		return nil, errors.Errorf("unsupported type: %T", m.V)
+		return nil, errors.New(op, fmt.Sprintf("unsupported type: %T", m.V))
 	}
-	return bs, errors.Wrapf(m.err, "marshal type: %T", m.V)
-
+	if m.err != nil {
+		return bs, errors.New(op, fmt.Sprintf("marshal type: %T", m.V), m.err)
+	}
+	return bs, nil
 }
 
 func (m *BinaryMarshaller) marshalUUID(id uuid.UUID) []byte {
+	const op errors.Op = "dbrecords/binaryMarshaller.marshalUUID"
 	var (
 		bs  []byte
 		err error
 	)
 	m.do(func() error {
 		bs, err = id.MarshalBinary()
-		return errors.Wrap(err, "marshall id bytes")
+		if err != nil {
+			return errors.New(op, err)
+		}
+		return nil
 	})
 	return bs
 }
@@ -80,6 +88,8 @@ func (m *BinaryMarshaller) marshalACMEClient(client *acme.Client) []byte {
 }
 
 func (m *BinaryMarshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyType, []byte) {
+	const op errors.Op = "dbrecords/binaryMarshaller.marshalPrivateKey"
+
 	var (
 		certutilKt certutil.KeyType
 		kt         keyType
@@ -89,14 +99,17 @@ func (m *BinaryMarshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyT
 	m.do(func() error {
 		certutilKt, err = certutil.DetermineKeyType(privateKey)
 		if err != nil {
-			return errors.Wrap(err, "determine key type")
+			return errors.New(op, err)
 		}
 		kt, err = keyTypeFromCertutil(certutilKt)
 		if err != nil {
-			return errors.Wrap(err, "convert certutil key type")
+			return errors.New(op, err)
 		}
 		err = certutil.WritePrivateKey(privateKey, &buf, false)
-		return errors.Wrap(err, "write private key")
+		if err != nil {
+			return errors.New(op, "write private key", err)
+		}
+		return nil
 	})
 	return kt, buf.Bytes()
 }
@@ -113,11 +126,15 @@ func (m *BinaryMarshaller) marshalACMEDomain(d *acme.Domain) []byte {
 }
 
 func (m *BinaryMarshaller) marshalPB(msg proto.Message) []byte {
+	const op errors.Op = "dbrecords/binaryMarshaller.marshalPB"
 	var bs []byte
 	m.do(func() error {
 		var err error
 		bs, err = proto.Marshal(msg)
-		return errors.Wrap(err, "marshal protobuf")
+		if err != nil {
+			return errors.New(op, "marshal protobuf", err)
+		}
+		return nil
 	})
 	return bs
 }

@@ -3,11 +3,12 @@ package dbrecords
 import (
 	"crypto"
 	"crypto/x509"
+	fmt "fmt"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 // UnmarshalBinary unmarshals the passed byte slice into v which should be a pointer
@@ -28,6 +29,8 @@ type BinaryUnmarshaller struct {
 
 // UnmarshalBinary creates a domain object from the passed bytes.
 func (u *BinaryUnmarshaller) UnmarshalBinary(bs []byte) error {
+	const op errors.Op = "dbrecords/binaryUnmarshaller.UnmarshalBinary"
+
 	switch obj := u.V.(type) {
 	case *acme.Client:
 		u.unmarshalACMEClient(bs, obj)
@@ -38,22 +41,32 @@ func (u *BinaryUnmarshaller) UnmarshalBinary(bs []byte) error {
 	case *string:
 		*obj = string(bs)
 	default:
-		return errors.Errorf("unsupported type: %T", u.V)
+		return errors.New(op, fmt.Sprintf("unsupported type: %T", u.V))
 	}
-	return errors.Wrapf(u.err, "unmarshal type: %T", u.V)
+	if u.err != nil {
+		return errors.New(op, fmt.Sprintf("unmarshal type: %T", u.V), u.err)
+	}
+	return nil
 }
 
 func (u *BinaryUnmarshaller) unmarshalUUID(bs []byte, id *uuid.UUID) {
+	const op errors.Op = "dbrecords/binaryUnmarshaller.unmarshalUUID"
+
 	u.do(func() error {
 		err := id.UnmarshalBinary(bs)
-		return errors.Wrap(err, "unmarshal uuid")
+		if err != nil {
+			return errors.New(op, "unmarshal uuid", err)
+		}
+		return nil
 	})
 }
 
 func (u *BinaryUnmarshaller) unmarshalACMEClient(bs []byte, client *acme.Client) {
+	const op errors.Op = "dbrecords/binaryUnmarshaller.unmarshalACMEClient"
+
 	u.do(func() error {
 		if client == nil {
-			return errors.New("client must not be nil")
+			return errors.New(op, "client must not be nil")
 		}
 		var (
 			rec Client
@@ -70,27 +83,37 @@ func (u *BinaryUnmarshaller) unmarshalACMEClient(bs []byte, client *acme.Client)
 }
 
 func (u *BinaryUnmarshaller) unmarshalPrivateKey(kt keyType, bs []byte) crypto.PrivateKey {
+	const op errors.Op = "dbrecords/binaryUnmarshaller.unmarshalPrivateKey"
+
 	var pk crypto.PrivateKey
 	u.do(func() error {
 		var err error
+
 		switch kt {
 		case ecdsa:
 			pk, err = x509.ParseECPrivateKey(bs)
-			return errors.Wrap(err, "unmarshal ECDSA private key")
+			if err != nil {
+				err = errors.New(op, "unmarshal ECDSA private key", err)
+			}
 		case rsa:
 			pk, err = x509.ParsePKCS1PrivateKey(bs)
-			return errors.Wrap(err, "parse RSA private key")
+			if err != nil {
+				err = errors.New(op, "parse RSA private key", err)
+			}
 		default:
-			return errors.Errorf("unknown key type: %v", kt)
+			err = errors.New(op, fmt.Sprintf("unknown key type: %v", kt))
 		}
+		return err
 	})
 	return pk
 }
 
 func (u *BinaryUnmarshaller) unmarshalACMEDomain(bs []byte, domain *acme.Domain) {
+	const op errors.Op = "dbrecords/binaryUnmarshaller.unmarshalACMEDomain"
+
 	u.do(func() error {
 		if domain == nil {
-			return errors.New("domain must not be nil")
+			return errors.New(op, "domain must not be nil")
 		}
 		var (
 			rec      Domain
@@ -107,9 +130,14 @@ func (u *BinaryUnmarshaller) unmarshalACMEDomain(bs []byte, domain *acme.Domain)
 }
 
 func (u *BinaryUnmarshaller) unmarshalPB(bs []byte, msg proto.Message) {
+	const op errors.Op = "dbrecords/binaryUnmarshaller.unmarshalPB"
+
 	u.do(func() error {
 		err := proto.Unmarshal(bs, msg)
-		return errors.Wrap(err, "unmarshal protobuf")
+		if err != nil {
+			return errors.New(op, "unmarshal protobuf", err)
+		}
+		return nil
 	})
 }
 
