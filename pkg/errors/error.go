@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"reflect"
 	"strings"
 )
 
@@ -137,4 +138,26 @@ func sep(sb *strings.Builder) {
 		return
 	}
 	sb.WriteString(": ")
+}
+
+// Unwrap returns the error wrapped by this Error. It returns nil if no error
+// is wrapped.
+func (e *Error) Unwrap() error {
+	return e.Err
+}
+
+// HasCause returns true if the error err has the error cause in its chain
+// of wrapped errors. It returns false otherwise.
+func HasCause(err error, cause error) bool {
+	if reflect.DeepEqual(err, cause) {
+		return true
+	}
+	if wrapper, ok := err.(unwrapper); ok {
+		return HasCause(wrapper.Unwrap(), cause)
+	}
+	return false
+}
+
+type unwrapper interface {
+	Unwrap() error
 }

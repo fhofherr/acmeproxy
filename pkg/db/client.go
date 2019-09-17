@@ -31,7 +31,7 @@ func (r *clientRepository) UpdateClient(id uuid.UUID, f func(*acme.Client) error
 		return b.Err
 	})
 	if err != nil {
-		return client, errors.New(op, fmt.Sprintf("update client: %v", id), err)
+		return client, errors.New(op, fmt.Sprintf("client: %v", id), err)
 	}
 	return client, nil
 }

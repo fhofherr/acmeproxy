@@ -122,3 +122,42 @@ func TestError_Error(t *testing.T) {
 		})
 	}
 }
+
+func TestHasCause(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		cause    error
+		expected bool
+	}{
+		{
+			name:     "equal errors",
+			err:      errors.New("Oops"),
+			cause:    errors.New("Oops"),
+			expected: true,
+		},
+		{
+			name:     "error wraps cause",
+			err:      errors.New("something else", errors.New("Oops")),
+			cause:    errors.New("Oops"),
+			expected: true,
+		},
+		{
+			name:  "distinct errors",
+			err:   errors.New("Oops"),
+			cause: errors.New("something else"),
+		},
+		{
+			name:  "cause not wrapped",
+			err:   errors.New("something else", errors.New("not the droids you are looking for")),
+			cause: errors.New("droids"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := errors.HasCause(tt.err, tt.cause)
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
