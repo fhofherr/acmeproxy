@@ -44,8 +44,5 @@ func (d *domainRepository) GetDomain(domainName string) (acme.Domain, error) {
 		b.readRecord(id, target)
 		return nil
 	})
-	if err != nil {
-		return domain, errors.New(op, "read domain from bucket", err)
-	}
-	return domain, nil
+	return domain, errors.Wrap(err, op, "read domain from bucket")
 }

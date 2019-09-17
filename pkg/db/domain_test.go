@@ -8,6 +8,7 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/fhofherr/acmeproxy/pkg/db"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -89,6 +90,17 @@ func TestUpdateDomain(t *testing.T) {
 	assert.Equal(t, updatedKey, updatedDomain.PrivateKey)
 	assert.NotEqual(t, newDomain.Certificate, updatedDomain.Certificate)
 	assert.NotEqual(t, newDomain.PrivateKey, updatedDomain.PrivateKey)
+}
+
+func TestUpdateDomain_UpdateFunctionError(t *testing.T) {
+	fx := db.NewTestFixture(t)
+	defer fx.Close()
+	domainRepository := fx.DB.DomainRepository()
+	expectedError := errors.New("update failed")
+	_, err := domainRepository.UpdateDomain("example.com", func(d *acme.Domain) error {
+		return expectedError
+	})
+	assert.Truef(t, errors.HasCause(err, expectedError), "expected %v to have cause %v", err, expectedError)
 }
 
 func readFile(t *testing.T, filename string) []byte {
