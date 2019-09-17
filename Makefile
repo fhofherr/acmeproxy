@@ -4,8 +4,10 @@
 .DEFAULT_GOAL := all
 
 GO := go
-GOLINT := golint
-GOLANGCI_LINT := golangci-lint
+GOPATH := $(shell $(GO) env GOPATH | tr -d "\n\t ")
+GOBIN := $(GOPATH)/bin
+GOLINT := $(GOBIN)/golint
+GOLANGCI_LINT := $(GOBIN)/golangci-lint
 DOCKER_COMPOSE := docker-compose
 PROTOC := protoc
 SED := sed
