@@ -109,6 +109,16 @@ func New(args ...interface{}) error {
 	return err
 }
 
+// Wrap returns nil if err is nil. If err is not nil it calls New and returns
+// whatever new returns.
+func Wrap(err error, args ...interface{}) error {
+	if err != nil {
+		args = append(args, err)
+		return New(args...)
+	}
+	return nil
+}
+
 func (e *Error) Error() string {
 	if e == nil {
 		return ""

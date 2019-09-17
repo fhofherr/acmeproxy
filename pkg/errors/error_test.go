@@ -78,6 +78,31 @@ func TestNewError(t *testing.T) {
 	}
 }
 
+func TestWrapError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		args     []interface{}
+		expected error
+	}{
+		{
+			name: "return nil if err is nil",
+		},
+		{
+			name:     "wrap error if err is not nil",
+			err:      errors.New("Oops"),
+			args:     []interface{}{"something else"},
+			expected: errors.New("something else", errors.New("Oops")),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := errors.Wrap(tt.err, tt.args...)
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
 func TestError_Error(t *testing.T) {
 	tests := []struct {
 		name     string
