@@ -62,11 +62,7 @@ func (b *Bolt) Close() error {
 	if b.db == nil {
 		return nil
 	}
-	err := b.db.Close()
-	if err != nil {
-		return errors.New(op, "close database", err)
-	}
-	return nil
+	return errors.Wrap(b.db.Close(), op)
 }
 
 // ClientRepository returns an instance of a client repository.
