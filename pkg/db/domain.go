@@ -3,7 +3,7 @@ package db
 import (
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/db/internal/dbrecords"
-	"github.com/pkg/errors"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 )
 
 type domainRepository struct {
@@ -13,6 +13,7 @@ type domainRepository struct {
 
 // UpdateDomain updates a domain within the bolt database.
 func (d *domainRepository) UpdateDomain(domainName string, f func(d *acme.Domain) error) (acme.Domain, error) {
+	const op errors.Op = "db/domainRepository.UpdateDomain"
 	var domain acme.Domain
 
 	err := d.BoltDB.updateBucket(d.BucketName, func(b *bucket) error {
@@ -23,7 +24,10 @@ func (d *domainRepository) UpdateDomain(domainName string, f func(d *acme.Domain
 		b.writeRecord(&dbrecords.BinaryMarshaller{V: domainName}, &dbrecords.BinaryMarshaller{V: &domain})
 		return nil
 	})
-	return domain, errors.Wrap(err, "update domain")
+	if err != nil {
+		return domain, errors.New(op, "update domain", err)
+	}
+	return domain, nil
 }
 
 // GetDomain reads the domain with the passed domainName from the domain
@@ -31,12 +35,14 @@ func (d *domainRepository) UpdateDomain(domainName string, f func(d *acme.Domain
 //
 // If the domain does not exist the acme.Domain zero value is returned.
 func (d *domainRepository) GetDomain(domainName string) (acme.Domain, error) {
+	const op errors.Op = "db/domainRepository.GetDomain"
 	var domain acme.Domain
+
 	err := d.BoltDB.viewBucket(d.BucketName, func(b *bucket) error {
 		id := &dbrecords.BinaryMarshaller{V: domainName}
 		target := &dbrecords.BinaryUnmarshaller{V: &domain}
 		b.readRecord(id, target)
 		return nil
 	})
-	return domain, errors.Wrap(err, "read domain from bucket")
+	return domain, errors.Wrap(err, op, "read domain from bucket")
 }

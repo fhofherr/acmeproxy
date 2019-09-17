@@ -1,12 +1,13 @@
 package db
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
-	"github.com/pkg/errors"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"go.etcd.io/bbolt"
 )
 
@@ -29,6 +30,8 @@ type Bolt struct {
 
 // Open opens the bolt database.
 func (b *Bolt) Open() error {
+	const op errors.Op = "db/bolt.Open"
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.db != nil {
@@ -40,11 +43,11 @@ func (b *Bolt) Open() error {
 	dbDir := filepath.Dir(b.FilePath)
 	err := os.MkdirAll(dbDir, 0755)
 	if err != nil {
-		return errors.Wrap(err, "create db directory")
+		return errors.New(op, "create directory", err)
 	}
 	db, err := bbolt.Open(b.FilePath, b.FileMode, nil)
 	if err != nil {
-		return errors.Wrap(err, "open bolt database")
+		return errors.New(op, "open database", err)
 	}
 	b.db = db
 	return nil
@@ -52,12 +55,14 @@ func (b *Bolt) Open() error {
 
 // Close closes the bolt database.
 func (b *Bolt) Close() error {
+	const op errors.Op = "db/bolt.Close"
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.db == nil {
 		return nil
 	}
-	return errors.Wrap(b.db.Close(), "close bolt database")
+	return errors.Wrap(b.db.Close(), op)
 }
 
 // ClientRepository returns an instance of a client repository.
@@ -77,10 +82,12 @@ func (b *Bolt) DomainRepository() acme.DomainRepository {
 }
 
 func (b *Bolt) viewBucket(name string, view func(*bucket) error) error {
+	const op errors.Op = "db/bolt.viewBucket"
+
 	return b.db.View(func(tx *bbolt.Tx) error {
 		boltBucket := tx.Bucket([]byte(name))
 		if boltBucket == nil {
-			return errors.Errorf("no such bucket: %s", name)
+			return errors.New(op, errors.NotFound, fmt.Sprintf("bucket: %s", name))
 		}
 		bucket := &bucket{Bkt: boltBucket}
 		err := view(bucket)
@@ -92,10 +99,12 @@ func (b *Bolt) viewBucket(name string, view func(*bucket) error) error {
 }
 
 func (b *Bolt) updateBucket(name string, update func(*bucket) error) error {
+	const op errors.Op = "db/bolt.updateBucket"
+
 	return b.db.Update(func(tx *bbolt.Tx) error {
 		boltBucket, err := tx.CreateBucketIfNotExists([]byte(name))
 		if err != nil {
-			return errors.Wrapf(err, "create bucket: %s", name)
+			return errors.New(op, "create bucket", err)
 		}
 		bucket := &bucket{Bkt: boltBucket}
 		err = update(bucket)

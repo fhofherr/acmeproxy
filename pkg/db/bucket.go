@@ -3,7 +3,7 @@ package db
 import (
 	"encoding"
 
-	"github.com/pkg/errors"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"go.etcd.io/bbolt"
 )
 
@@ -13,6 +13,8 @@ type bucket struct {
 }
 
 func (b *bucket) writeRecord(id, record encoding.BinaryMarshaler) {
+	const op errors.Op = "db/bucket.writeRecord"
+
 	var (
 		idBytes     []byte
 		recordBytes []byte
@@ -30,7 +32,7 @@ func (b *bucket) writeRecord(id, record encoding.BinaryMarshaler) {
 	}
 	b.Err = b.Bkt.Put(idBytes, recordBytes)
 	if b.Err != nil {
-		b.Err = errors.Wrap(b.Err, "put record")
+		b.Err = errors.New(op, "put record", b.Err)
 		return
 	}
 }

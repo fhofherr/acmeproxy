@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/db/internal/dbrecords"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -42,7 +42,7 @@ func TestReadRecordCantMarshalID(t *testing.T) {
 	fx := NewTestFixture(t)
 	defer fx.Close()
 
-	marshalErr := errors.Errorf("can't marshal")
+	marshalErr := errors.New("can't marshal")
 	id := newMockBinaryMarshaller(t)
 	id.On("MarshalBinary").Return([]byte(nil), marshalErr)
 	target := newMockBinaryUnmarshaller(t)
@@ -55,7 +55,7 @@ func TestReadRecordCantMarshalID(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Equal(t, marshalErr, errors.Cause(err))
+	assert.Equal(t, marshalErr, err)
 	id.AssertCalled(t, "MarshalBinary")
 	target.AssertNotCalled(t, "UnmarshalBinary", mock.Anything)
 }
@@ -78,7 +78,7 @@ func TestReadRecordCantUnmarshalRecord(t *testing.T) {
 		return b.Err
 	})
 	assert.Error(t, err)
-	assert.Error(t, unmarshalErr, errors.Cause(err))
+	assert.Error(t, unmarshalErr, err)
 	target.AssertCalled(t, "UnmarshalBinary", []byte(record))
 }
 
@@ -86,7 +86,7 @@ func TestReadRecordDoesNothingIfBucketHasError(t *testing.T) {
 	fx := NewTestFixture(t)
 	defer fx.Close()
 
-	bucketErr := errors.Errorf("bucket error")
+	bucketErr := errors.New("bucket error")
 	id := newMockBinaryMarshaller(t)
 	record := newMockBinaryUnmarshaller(t)
 
@@ -106,7 +106,7 @@ func TestWriteRecordCantMarshalID(t *testing.T) {
 	fx := NewTestFixture(t)
 	defer fx.Close()
 
-	marshalErr := errors.Errorf("can't marshal id")
+	marshalErr := errors.New("can't marshal id")
 	id := newMockBinaryMarshaller(t)
 	id.On("MarshalBinary").Return([]byte(nil), marshalErr)
 	record := newMockBinaryMarshaller(t)
@@ -116,7 +116,7 @@ func TestWriteRecordCantMarshalID(t *testing.T) {
 		return b.Err
 	})
 	assert.Error(t, err)
-	assert.Equal(t, marshalErr, errors.Cause(err))
+	assert.Equal(t, marshalErr, err)
 	id.AssertCalled(t, "MarshalBinary")
 	record.AssertNotCalled(t, "MarshalBinary")
 }
@@ -126,7 +126,7 @@ func TestWriteRecordCantMarshalRecord(t *testing.T) {
 	defer fx.Close()
 
 	id := uuid.Must(uuid.NewRandom())
-	marshalErr := errors.Errorf("can't marshal record")
+	marshalErr := errors.New("can't marshal record")
 	record := newMockBinaryMarshaller(t)
 	record.On("MarshalBinary").Return([]byte(nil), marshalErr)
 
@@ -135,7 +135,7 @@ func TestWriteRecordCantMarshalRecord(t *testing.T) {
 		return b.Err
 	})
 	assert.Error(t, err)
-	assert.Equal(t, marshalErr, errors.Cause(err))
+	assert.Equal(t, marshalErr, err)
 	record.AssertCalled(t, "MarshalBinary")
 }
 

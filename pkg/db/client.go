@@ -1,10 +1,12 @@
 package db
 
 import (
+	"fmt"
+
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/db/internal/dbrecords"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 type clientRepository struct {
@@ -14,6 +16,7 @@ type clientRepository struct {
 
 // UpdateClient updates a client within the bolt database.
 func (r *clientRepository) UpdateClient(id uuid.UUID, f func(*acme.Client) error) (acme.Client, error) {
+	const op errors.Op = "db/clientRepository.UpdateClient"
 	var (
 		client acme.Client
 		err    error
@@ -27,13 +30,17 @@ func (r *clientRepository) UpdateClient(id uuid.UUID, f func(*acme.Client) error
 		b.writeRecord(id, &dbrecords.BinaryMarshaller{V: &client})
 		return b.Err
 	})
-	return client, errors.Wrapf(err, "update client: %v", id)
+	if err != nil {
+		return client, errors.New(op, fmt.Sprintf("client: %v", id), err)
+	}
+	return client, nil
 }
 
 // GetClient obtains a client by its id.
 //
 // If the client could not be found the acme.Client zero value is returned.
 func (r *clientRepository) GetClient(id uuid.UUID) (acme.Client, error) {
+	const op errors.Op = "db/clientRepository.GetClient"
 	var client acme.Client
 
 	err := r.BoltDB.viewBucket(r.BucketName, func(b *bucket) error {
@@ -42,6 +49,5 @@ func (r *clientRepository) GetClient(id uuid.UUID) (acme.Client, error) {
 		b.readRecord(id, target)
 		return nil
 	})
-
-	return client, errors.Wrapf(err, "get client: %v", id)
+	return client, errors.Wrap(err, op, fmt.Sprintf("get client: %v", id))
 }
