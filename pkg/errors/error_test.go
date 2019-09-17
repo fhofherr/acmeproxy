@@ -186,3 +186,34 @@ func TestHasCause(t *testing.T) {
 		})
 	}
 }
+
+func TestGetKind(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected errors.Kind
+	}{
+		{
+			name: "errors other than errors.Error are always unspecified",
+			err:  fmt.Errorf("not one of our errors"),
+		},
+		{
+			name:     "get kind of acmeproxy error",
+			err:      errors.New(errors.NotFound),
+			expected: errors.NotFound,
+		},
+		{
+			name:     "the first specified Kind wins",
+			err:      errors.New(errors.Unspecified, errors.New(errors.NotFound)),
+			expected: errors.NotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, errors.GetKind(tt.err))
+			assert.True(t, errors.IsKind(tt.err, tt.expected))
+		})
+	}
+}

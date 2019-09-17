@@ -49,8 +49,5 @@ func (r *clientRepository) GetClient(id uuid.UUID) (acme.Client, error) {
 		b.readRecord(id, target)
 		return nil
 	})
-	if err != nil {
-		return client, errors.New(op, fmt.Sprintf("get client: %v", id), err)
-	}
-	return client, nil
+	return client, errors.Wrap(err, op, fmt.Sprintf("get client: %v", id))
 }

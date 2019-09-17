@@ -41,6 +41,66 @@ func TestSaveNewClient(t *testing.T) {
 	assert.Equal(t, expected, saved)
 }
 
+func TestGetClient(t *testing.T) {
+	type test struct {
+		name         string
+		clientID     uuid.UUID
+		keyFile      string
+		prepare      func(*testing.T, test, *db.TestFixture)
+		expectedKind errors.Kind
+	}
+	var tests = []test{
+		{
+			name:         "empty repository",
+			clientID:     uuid.Must(uuid.NewRandom()),
+			expectedKind: errors.NotFound,
+		},
+		{
+			name:     "missing client",
+			clientID: uuid.Must(uuid.NewRandom()),
+			keyFile:  filepath.Join("testdata", t.Name(), "private_key.pem"),
+			prepare: func(t *testing.T, tt test, fx *db.TestFixture) {
+				key := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(certutil.EC256, tt.keyFile, true))
+				otherClientID := uuid.Must(uuid.NewRandom())
+				repo := fx.DB.ClientRepository()
+				_, err := repo.UpdateClient(otherClientID, func(c *acme.Client) error {
+					c.ID = otherClientID
+					c.Key = key
+					return nil
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+			},
+			expectedKind: errors.NotFound,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.keyFile != "" {
+				tt.keyFile = filepath.Join("testdata", t.Name(), tt.keyFile)
+				if *db.FlagUpdate {
+					certutil.WritePrivateKeyForTesting(t, tt.keyFile, certutil.EC256, true)
+				}
+			}
+			fx := db.NewTestFixture(t)
+			defer fx.Close()
+			if tt.prepare != nil {
+				tt.prepare(t, tt, fx)
+			}
+			repo := fx.DB.ClientRepository()
+			_, err := repo.GetClient(tt.clientID)
+			if err != nil {
+				assert.Truef(t, errors.IsKind(err, tt.expectedKind),
+					"expected error kind %v, got %v", tt.expectedKind, errors.GetKind(err))
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestUpdateClient(t *testing.T) {
 	type updateTest struct {
 		name       string

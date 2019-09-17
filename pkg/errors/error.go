@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 )
@@ -162,7 +163,8 @@ func HasCause(err error, cause error) bool {
 	if reflect.DeepEqual(err, cause) {
 		return true
 	}
-	if wrapper, ok := err.(unwrapper); ok {
+	var wrapper unwrapper
+	if errors.As(err, &wrapper) {
 		return HasCause(wrapper.Unwrap(), cause)
 	}
 	return false
@@ -170,4 +172,25 @@ func HasCause(err error, cause error) bool {
 
 type unwrapper interface {
 	Unwrap() error
+}
+
+// GetKind returns the Kind of the passed error, or Unspecified if the error
+// GetKind returns the Kind of the passed error, or Unspecified if the error
+// has no Kind or is not an acmeproxy error.
+// has no Kind or is not an acmeproxy error.
+func GetKind(err error) Kind {
+	var acpErr *Error
+
+	if err == nil || !errors.As(err, &acpErr) {
+		return Unspecified
+	}
+	if acpErr.Kind == Unspecified {
+		return GetKind(acpErr.Err)
+	}
+	return acpErr.Kind
+}
+
+// IsKind checks if the error is of the expected Kind.
+func IsKind(err error, kind Kind) bool {
+	return GetKind(err) == kind
 }
