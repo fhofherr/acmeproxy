@@ -1,4 +1,4 @@
-package acmetest
+package testsupport
 
 import (
 	"os"

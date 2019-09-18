@@ -99,17 +99,17 @@ func TestRegisterSameDomainForDifferentClients(t *testing.T) {
 
 type agentFixture struct {
 	FakeCA           *acmetest.FakeCA
-	ClientRepository *acmetest.InMemoryClientRepository
-	DomainRepository *acmetest.InMemoryDomainRepository
-	AccountCreator   *acmetest.InMemoryAccountCreator
+	ClientRepository *acme.InMemoryClientRepository
+	DomainRepository *acme.InMemoryDomainRepository
+	AccountCreator   *acme.InMemoryAccountCreator
 	Agent            *acme.Agent
 }
 
 func newAgentFixture(t *testing.T) agentFixture {
 	fakeCA := &acmetest.FakeCA{T: t}
-	clientRepository := &acmetest.InMemoryClientRepository{}
-	domainRepository := &acmetest.InMemoryDomainRepository{}
-	accountCreator := &acmetest.InMemoryAccountCreator{}
+	clientRepository := &acme.InMemoryClientRepository{}
+	domainRepository := &acme.InMemoryDomainRepository{}
+	accountCreator := &acme.InMemoryAccountCreator{}
 	agent := &acme.Agent{
 		Domains:      domainRepository,
 		Clients:      clientRepository,

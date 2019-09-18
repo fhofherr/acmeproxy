@@ -1,4 +1,4 @@
-package acmetest
+package acmeclient
 
 import (
 	"fmt"
@@ -8,12 +8,37 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 )
+
+// TestFixture wraps a Client suitable for testing.
+type TestFixture struct {
+	Pebble *testsupport.Pebble
+	Client Client
+}
+
+// NewTestFixture creates a new test fixture.
+func NewTestFixture(t *testing.T, challengeServerPort int) (TestFixture, func()) {
+	pebble := testsupport.NewPebble(t)
+	resetCACerts := testsupport.SetLegoCACertificates(t, pebble.TestCert)
+	client := Client{
+		DirectoryURL: pebble.DirectoryURL(),
+		HTTP01Solver: NewHTTP01Solver(),
+	}
+	server := NewChallengeServer(t, client.HTTP01Solver, challengeServerPort)
+	fixture := TestFixture{
+		Pebble: pebble,
+		Client: client,
+	}
+	return fixture, func() {
+		server.Close()
+		resetCACerts()
+	}
+}
 
 // NewChallengeServer creates an httptest.Server which uses the handler to
 // serve HTTP01 challenges.
-func NewChallengeServer(t *testing.T, handler *acmeclient.HTTP01Solver, port int) *httptest.Server {
+func NewChallengeServer(t *testing.T, handler *HTTP01Solver, port int) *httptest.Server {
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		portSuffix := fmt.Sprintf(":%d", port)
 		domain := strings.Replace(req.Host, portSuffix, "", -1)
@@ -24,7 +49,7 @@ func NewChallengeServer(t *testing.T, handler *acmeclient.HTTP01Solver, port int
 		token := pathParts[len(pathParts)-1]
 		keyAuth, err := handler.SolveChallenge(domain, token)
 		w.Header().Add("content-type", "application/octet-stream")
-		if failedErr, ok := err.(acmeclient.ErrChallengeFailed); ok {
+		if failedErr, ok := err.(ErrChallengeFailed); ok {
 			t.Log(failedErr)
 			w.WriteHeader(http.StatusNotFound)
 			return

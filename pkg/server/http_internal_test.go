@@ -9,7 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fhofherr/acmeproxy/pkg/server/servertest"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +36,7 @@ func TestStartNonEncryptedHTTPServer(t *testing.T) {
 		statusCode int
 		body       []byte
 	)
-	servertest.Retry(t, 3, 5*time.Millisecond, func() error {
+	testsupport.Retry(t, 3, 5*time.Millisecond, func() error {
 		resp, err := http.Get(url)
 		if err != nil {
 			return err
