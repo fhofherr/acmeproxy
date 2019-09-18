@@ -12,8 +12,6 @@ DOCKER_COMPOSE := docker-compose
 PROTOC := protoc
 SED := sed
 
-HOST_IP := $(shell $(GO) run scripts/dev/hostip/main.go)
-
 BIN_DIR := bin
 BINARY_NAME := acmeproxy
 TARGET_ARCHITECTURES := local linux/amd64
@@ -75,10 +73,7 @@ documentation: ## Update the documentation
 
 .PHONY: dev-env-up
 dev-env-up: | $(PEBBLE_DIR) ## Start the local development environment
-ifeq ($(strip $(HOST_IP)),)
-	$(error HOST_IP has to be set)
-endif
-	HOST_IP=$(HOST_IP) $(DOCKER_COMPOSE) -f docker/docker-compose.dev.yml up --build --detach
+	$(DOCKER_COMPOSE) -f docker/docker-compose.dev.yml up --build --detach
 	@echo
 	@echo "***** Local development environment started *****"
 	@echo
@@ -91,10 +86,7 @@ endif
 
 .PHONY: dev-env-down
 dev-env-down: ## Shut the local development environment down
-ifeq ($(strip $(HOST_IP)),)
-	$(error HOST_IP has to be set)
-endif
-	HOST_IP=$(HOST_IP) $(DOCKER_COMPOSE) -f docker/docker-compose.dev.yml down
+	$(DOCKER_COMPOSE) -f docker/docker-compose.dev.yml down
 	@echo
 	@echo "***** Local development environment stopped *****"
 	@echo
