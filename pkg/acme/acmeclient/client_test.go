@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const challengeServerPort = 5002
-
 func TestCreateAccount(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 	tests := []struct {
@@ -22,7 +20,7 @@ func TestCreateAccount(t *testing.T) {
 		{name: "create account with email", email: "jane.doe@example.com"},
 	}
 
-	fx, tearDown := acmeclient.NewTestFixture(t, challengeServerPort)
+	fx, tearDown := acmeclient.NewTestFixture(t, testsupport.ChallengeServerPort)
 	defer tearDown()
 	for _, tt := range tests {
 		tt := tt
@@ -45,7 +43,7 @@ func TestCreateAccount(t *testing.T) {
 func TestObtainCertificate(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 
-	fx, tearDown := acmeclient.NewTestFixture(t, challengeServerPort)
+	fx, tearDown := acmeclient.NewTestFixture(t, testsupport.ChallengeServerPort)
 	defer tearDown()
 
 	tests := []struct {
@@ -124,7 +122,7 @@ func TestObtainCertificate(t *testing.T) {
 func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 
-	fx, tearDown := acmeclient.NewTestFixture(t, challengeServerPort)
+	fx, tearDown := acmeclient.NewTestFixture(t, testsupport.ChallengeServerPort)
 	defer tearDown()
 
 	domain := "www.example.com"

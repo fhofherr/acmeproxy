@@ -15,6 +15,19 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 )
 
+// ChallengeServerPort represents the port Pebble expects the HTTP01 challenge
+// to be served.
+//
+// TODO (fhofherr) find a way that avoids test competing for this port.
+//
+// Currently recovering from the resulting panic seems a viable option. Another
+// option would be to disable the parallel execution of multiple test binaries
+// using the -p flag. See go help build for more information about this option.
+//
+// A better alternative would be to tell pebble which port to use. But this
+// seems not to be possible at the moment.
+const ChallengeServerPort = 5002
+
 var (
 	pebbleHost = os.Getenv("ACMEPROXY_PEBBLE_HOST")
 	pebbleCert = os.Getenv("ACMEPROXY_PEBBLE_TEST_CERT")
