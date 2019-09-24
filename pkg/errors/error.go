@@ -175,8 +175,6 @@ type unwrapper interface {
 }
 
 // GetKind returns the Kind of the passed error, or Unspecified if the error
-// GetKind returns the Kind of the passed error, or Unspecified if the error
-// has no Kind or is not an acmeproxy error.
 // has no Kind or is not an acmeproxy error.
 func GetKind(err error) Kind {
 	var acpErr *Error
