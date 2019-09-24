@@ -35,9 +35,9 @@ var serveCmd = &cobra.Command{
 	Long: `
 Start the acmeproxy server.
 
-The acmeproxy server obtains certificates from an ACME compliant certificate 
-authority. Depending on the operation mode requested by the client, it either 
-stores the certificates, or directly passes them on to the client. If the 
+The acmeproxy server obtains certificates from an ACME compliant certificate
+authority. Depending on the operation mode requested by the client, it either
+stores the certificates, or directly passes them on to the client. If the
 acmeproxy server stores the certificates locally it takes care of renewing
 them before they expire.
 
@@ -45,20 +45,23 @@ The server should work as expected out-of-the box. Certain settings can be
 overridden using command line flags. Some flags can also be set using
 environment variables. Those flags are marked with [*]. The name of the
 environment variable corresponds to the flag name prefixed with 'ACMEPROXY_' and
-all hyphens replaced underscores. For example the name of the environment 
+all hyphens replaced underscores. For example the name of the environment
 variable matching the flag '--http-api-addr' would be 'ACMEPROXY_HTTP_API_ADDR'.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg := server.Config{
+		s := &server.Server{
 			ACMEDirectoryURL: viper.GetString(flagACMEDirectoryURLName),
 			HTTPAPIAddr:      viper.GetString(flagHTTPAPIAddrName),
-			Logger:           nil,
+			// TODO (fhofherr) add Logger
 		}
-		s, err := server.New(cfg)
+		err := s.Start()
 		if err != nil {
 			fmt.Printf("%+v", err)
 			os.Exit(1)
 		}
-		s.Start()
+		// TODO (fhofherr) add errors.Log function which logs a passed non-nil error value.
+		// If the log contains a location it preferably points to the call site of errors.Log and not the position
+		// within errors.Log.
+		// nolint: errcheck
 		defer s.Shutdown(context.Background())
 		// Block until we are killed.
 		select {}

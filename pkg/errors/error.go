@@ -192,3 +192,38 @@ func GetKind(err error) Kind {
 func IsKind(err error, kind Kind) bool {
 	return GetKind(err) == kind
 }
+
+// Match returns true iff err matches the template error tmpl.
+//
+// Match checks that both tmpl and err are of type *Error. If this is the case
+// Match compares every non-zero field of tmpl with the respective field in err.
+// If this is not the case it checks the error string of tmpl and err for
+// equality.
+//
+// Match recursively checks tmpl.Err and err.Err if they are set.
+func Match(tmpl, err error) bool {
+	var (
+		tmplErr *Error
+		actErr  *Error
+	)
+	if tmpl == nil || err == nil {
+		// true if tmpl and err are nil
+		return tmpl == err
+	}
+	if !errors.As(tmpl, &tmplErr) || !errors.As(err, &actErr) {
+		return tmpl.Error() == err.Error()
+	}
+	if tmplErr.Op != "" && tmplErr.Op != actErr.Op {
+		return false
+	}
+	if tmplErr.Kind != Unspecified && tmplErr.Kind != actErr.Kind {
+		return false
+	}
+	if tmplErr.Msg != "" && tmplErr.Msg != actErr.Msg {
+		return false
+	}
+	if tmplErr.Err != nil {
+		return Match(tmplErr.Err, actErr.Err)
+	}
+	return true
+}
