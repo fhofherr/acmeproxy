@@ -43,7 +43,7 @@ $(COVERAGE_FILE): $(GO_FILES)
 	@$(GO) test -race -covermode=atomic -coverprofile=$@ -coverpkg=$(GO_PACKAGES) ./... 2> /dev/null
 	$(SED) -i.bak '/\.pb\.go/d' $@
 	$(SED) -i.bak '/testing\.go/d' $@
-	$(SED) -i.bak '/testsupport\.go/d' $@
+	$(SED) -i.bak '/\/testsupport\//d' $@
 
 .PHONY: coverage
 coverage: $(COVERAGE_FILE) ## Compute and display the current total code coverage
