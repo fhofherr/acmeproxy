@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/golf/log"
 )
 
@@ -32,15 +33,15 @@ func (s *httpServer) Shutdown(ctx context.Context) {
 			"message", "Server not started. Skipping shutdown sequence")
 		return
 	}
-	err := s.httpServer.Shutdown(ctx)
-	if err != nil {
-		log.Log(s.Logger, "level", "error", "error", err)
-	}
+	errors.Log(s.Logger, s.httpServer.Shutdown(ctx))
 }
 
 func (s *httpServer) listenAndServe() {
+	const op errors.Op = "server/httpServer.listenAndServe"
+
 	err := s.httpServer.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
-		log.Log(s.Logger, "level", "error", "error", err)
+		err := errors.New(op, err)
+		errors.Log(s.Logger, err)
 	}
 }

@@ -5,15 +5,13 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
-	"github.com/fhofherr/acmeproxy/pkg/acme/acmetest"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/stretchr/testify/assert"
 )
 
-const challengeServerPort = 5002
-
 func TestCreateAccount(t *testing.T) {
-	acmetest.SkipIfPebbleDisabled(t)
+	testsupport.SkipIfPebbleDisabled(t)
 	tests := []struct {
 		name  string
 		email string
@@ -22,7 +20,7 @@ func TestCreateAccount(t *testing.T) {
 		{name: "create account with email", email: "jane.doe@example.com"},
 	}
 
-	fx, tearDown := newClientTestFixture(t)
+	fx, tearDown := acmeclient.NewTestFixture(t, testsupport.ChallengeServerPort)
 	defer tearDown()
 	for _, tt := range tests {
 		tt := tt
@@ -40,13 +38,12 @@ func TestCreateAccount(t *testing.T) {
 				fx.Pebble.AccountURLPrefix())
 		})
 	}
-
 }
 
 func TestObtainCertificate(t *testing.T) {
-	acmetest.SkipIfPebbleDisabled(t)
+	testsupport.SkipIfPebbleDisabled(t)
 
-	fx, tearDown := newClientTestFixture(t)
+	fx, tearDown := acmeclient.NewTestFixture(t, testsupport.ChallengeServerPort)
 	defer tearDown()
 
 	tests := []struct {
@@ -123,9 +120,9 @@ func TestObtainCertificate(t *testing.T) {
 }
 
 func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
-	acmetest.SkipIfPebbleDisabled(t)
+	testsupport.SkipIfPebbleDisabled(t)
 
-	fx, tearDown := newClientTestFixture(t)
+	fx, tearDown := acmeclient.NewTestFixture(t, testsupport.ChallengeServerPort)
 	defer tearDown()
 
 	domain := "www.example.com"
@@ -144,27 +141,4 @@ func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
 	ci, err := fx.Client.ObtainCertificate(req)
 	assert.NoError(t, err)
 	fx.Pebble.AssertIssuedByPebble(t, domain, ci.Certificate)
-}
-
-type clientTestFixture struct {
-	Pebble *acmetest.Pebble
-	Client acmeclient.Client
-}
-
-func newClientTestFixture(t *testing.T) (clientTestFixture, func()) {
-	pebble := acmetest.NewPebble(t)
-	resetCACerts := acmetest.SetLegoCACertificates(t, pebble.TestCert)
-	client := acmeclient.Client{
-		DirectoryURL: pebble.DirectoryURL(),
-		HTTP01Solver: acmeclient.NewHTTP01Solver(),
-	}
-	server := acmetest.NewChallengeServer(t, client.HTTP01Solver, challengeServerPort)
-	fixture := clientTestFixture{
-		Pebble: pebble,
-		Client: client,
-	}
-	return fixture, func() {
-		server.Close()
-		resetCACerts()
-	}
 }

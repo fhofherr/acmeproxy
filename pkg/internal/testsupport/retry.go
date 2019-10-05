@@ -1,4 +1,4 @@
-package servertest
+package testsupport
 
 import (
 	"testing"

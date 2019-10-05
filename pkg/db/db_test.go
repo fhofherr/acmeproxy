@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/db"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateNewBoltDB(t *testing.T) {
-	tmpDir, tearDown := db.CreateTmpDir(t)
+	tmpDir, tearDown := testsupport.CreateTmpDir(t)
 	defer tearDown()
 
 	tests := []struct {
@@ -52,7 +53,7 @@ func TestCreateNewBoltDB(t *testing.T) {
 }
 
 func TestTargetDirectoryNotWritable(t *testing.T) {
-	tmpDir, tearDown := db.CreateTmpDir(t)
+	tmpDir, tearDown := testsupport.CreateTmpDir(t)
 	defer tearDown()
 	notWritable := filepath.Join(tmpDir, "not_writable")
 	err := os.Mkdir(notWritable, 0500)
@@ -87,7 +88,7 @@ func TestTargetDirectoryNotWritable(t *testing.T) {
 }
 
 func TestOpenDBTwice(t *testing.T) {
-	tmpDir, tearDown := db.CreateTmpDir(t)
+	tmpDir, tearDown := testsupport.CreateTmpDir(t)
 	defer tearDown()
 	boltDB := db.Bolt{FilePath: filepath.Join(tmpDir, "test.db")}
 	assert.NoError(t, boltDB.Open())
@@ -95,7 +96,7 @@ func TestOpenDBTwice(t *testing.T) {
 }
 
 func TestCloseNonOpenDB(t *testing.T) {
-	tmpDir, tearDown := db.CreateTmpDir(t)
+	tmpDir, tearDown := testsupport.CreateTmpDir(t)
 	defer tearDown()
 	boltDB := db.Bolt{FilePath: filepath.Join(tmpDir, "test.db")}
 	assert.NoError(t, boltDB.Close())

@@ -20,7 +20,7 @@ services:
 
   challtestsrv:
     image: letsencrypt/pebble-challtestsrv:latest
-    command: pebble-challtestsrv -defaultIPv6 "" -defaultIPv4 "${HOST_IP}"
+    command: pebble-challtestsrv -defaultIPv6 "" -defaultIPv4 "10.30.50.1"
     ports:
       - 8055:8055  # HTTP Management API
     networks:
