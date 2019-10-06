@@ -15,9 +15,9 @@ func Retry(t *testing.T, n int, d time.Duration, op func() error) {
 		if err == nil {
 			return
 		}
-		t.Logf("Retry: attempt %d of %d failed.", i+1, n)
+		t.Logf("Retry: attempt %d of %d failed: %v", i+1, n, err)
 		time.Sleep(d)
-		d *= d
+		d *= 2
 	}
 	t.Fatal(err)
 }

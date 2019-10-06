@@ -164,42 +164,8 @@ Some of `acmeproxy`'s tests require a running instance of
 [pebble](https://github.com/letsencrypt/pebble) and will be skipped if
 such an instance is not configured.
 
-The easiest way to start such an instance is to use the
-local development environment:
-
-```sh
-make dev-env-up
-```
-
-This prints a bunch of environment variables which have to be set in
-order to configure the tests to use the started pebble instance.
-
-To shut down the test environment issue:
-
-```sh
-make dev-env-down
-```
-
-#### Firewall configuration
-
-For the tests it is necessary that the instance of pebble running in
-Docker is able to access the test server running on your host machine.
-If you have a firewall it must allow access to port `5002`.
-
-Furthermore the firewall must forward packages to the internal network
-created by docker compose.
-
-For `nftables` execute the following prior to executing the tests for
-the first time.
-
-```sh
-sudo nft insert rule inet filter input tcp dport 5002 accept
-sudo nft insert rule inet filter forward ip daddr 10.30.50.0/24 accept
-```
-
-The commands above assume you have a table called `filter` for the
-`inet` address family. The `filter` table must define two chains
-`input` and `forward`.
+If `make test` is called `pebble` is automatically downloaded and
+compiled. All tests relying on pebble are executed.
 
 ### Linter
 

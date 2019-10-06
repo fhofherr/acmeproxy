@@ -11,6 +11,13 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 )
 
+const (
+	// PebbleConfigJSON contains the configration of Pebble.
+	PebbleConfigJSON = "testdata/pebble-config.json"
+	// DNSPort is the port pebble uses for DNS queries.
+	DNSPort = "8053"
+)
+
 // TestFixture wraps a Client suitable for testing.
 type TestFixture struct {
 	Pebble *testsupport.Pebble
@@ -18,14 +25,16 @@ type TestFixture struct {
 }
 
 // NewTestFixture creates a new test fixture.
-func NewTestFixture(t *testing.T, challengeServerPort int) (TestFixture, func()) {
-	pebble := testsupport.NewPebble(t)
+func NewTestFixture(t *testing.T) (TestFixture, func()) {
+	pebble := testsupport.NewPebble(t, PebbleConfigJSON, DNSPort)
+	pebble.Start(t)
+
 	resetCACerts := testsupport.SetLegoCACertificates(t, pebble.TestCert)
 	client := Client{
 		DirectoryURL: pebble.DirectoryURL(),
 		HTTP01Solver: NewHTTP01Solver(),
 	}
-	server := NewChallengeServer(t, client.HTTP01Solver, challengeServerPort)
+	server := NewChallengeServer(t, client.HTTP01Solver, pebble.HTTPPort())
 	fixture := TestFixture{
 		Pebble: pebble,
 		Client: client,
@@ -33,6 +42,7 @@ func NewTestFixture(t *testing.T, challengeServerPort int) (TestFixture, func())
 	return fixture, func() {
 		server.Close()
 		resetCACerts()
+		pebble.Stop(t)
 	}
 }
 
@@ -65,14 +75,7 @@ func NewChallengeServer(t *testing.T, handler *HTTP01Solver, port int) *httptest
 		}
 	}))
 
-	// The dev environment is started in docker-compose or in separate
-	// Docker containers by our CI server. In order for it to be able to access
-	// to the test server started on the host machine or a separate Docker
-	// container we have to make it listen on all interfaces.
-	//
-	// If the host machine has a firewall it has to temporarily allow access
-	// to the dev server through the firewall.
-	address := fmt.Sprintf("0.0.0.0:%d", port)
+	address := fmt.Sprintf("127.0.0.1:%d", port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Fatal(err)
