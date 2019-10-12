@@ -5,15 +5,13 @@
 # See: http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
 PRJ_DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-.DEFAULT_GOAL := all
 
-GO := go
-GOPATH := $(shell $(GO) env GOPATH | tr -d "\n\t ")
-GOBIN := $(GOPATH)/bin
-GOLINT := $(GOBIN)/golint
-GOLANGCI_LINT := $(GOBIN)/golangci-lint
-PROTOC := protoc
-SED := sed
+GIT := $(shell command -v git 2> /dev/null)
+GO := $(shell command -v go 2> /dev/null)
+GOLANGCI_LINT := $(shell command -v golangci-lint 2> /dev/null)
+GOLINT := $(shell command -v golint 2> /dev/null)
+PROTOC := $(shell command -v protoc 2> /dev/null)
+SED := $(shell command -v sed 2> /dev/null)
 
 BIN_DIR := bin
 BINARY_NAME := acmeproxy
@@ -22,21 +20,33 @@ BINARY_FILES:=$(addsuffix /$(BINARY_NAME),$(addprefix $(BIN_DIR)/,$(TARGET_ARCHI
 
 SCRIPTS_DIR := scripts
 
+GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
+GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*" -not -path "*.pb.go")
+
+.DEFAULT_GOAL := all
+.PHONY: all
+all: documentation lint test build
+
+# -----------------------------------------------------------------------------
+#
+# Tests
+#
+# -----------------------------------------------------------------------------
 PEBBLE_DIR := .pebble
 # PRJ_DIR ends with /. We therefore omit it here.
 ACMEPROXY_PEBBLE_DIR := $(PRJ_DIR)$(PEBBLE_DIR)
 COVERAGE_FILE := .coverage.out
 
-GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
-GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -path "./$(SCRIPTS_DIR)/*" -not -path "*.pb.go")
-
-# -----------------------------------------------------------------------------
-
-.PHONY: all
-all: documentation lint test build
-
 .PHONY: test
 test: coverage ## Execute all tests and show a coverage summary
+
+.PHONY: coverage
+coverage: $(COVERAGE_FILE) ## Compute and display the current total code coverage
+	@$(GO) tool cover -func=$(COVERAGE_FILE) | tail -n1
+
+.PHONY: coverageHTML
+coverageHTML: $(COVERAGE_FILE) ## Create HTML coverage report
+	$(GO) tool cover -html=$(COVERAGE_FILE)
 
 $(COVERAGE_FILE): $(GO_FILES) $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv
 # Using -coverprofile together with -coverpkg works since Go 1.10. Thus
@@ -50,32 +60,8 @@ $(COVERAGE_FILE): $(GO_FILES) $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtes
 	@$(SED) -i.bak '/testing\.go/d' $@
 	@$(SED) -i.bak '/\/testsupport\//d' $@
 
-.PHONY: coverage
-coverage: $(COVERAGE_FILE) ## Compute and display the current total code coverage
-	@$(GO) tool cover -func=$(COVERAGE_FILE) | tail -n1
-
-.PHONY: coverageHTML
-coverageHTML: $(COVERAGE_FILE) ## Create HTML coverage report
-	$(GO) tool cover -html=$(COVERAGE_FILE)
-
-.PHONY: test-update
-test-update: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv ## Execute all tests that have an -update flag defined.
-	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/acme -update
-	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/certutil -update
-	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db/db -update
-	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db/internal/dbrecords -update
-
-.PHONY: lint
-lint:
-	$(GOLANGCI_LINT) run
-	$(GOLINT) ./...
-
-.PHONY: documentation
-documentation: ## Update the documentation
-	make -C doc/img svg
-
 $(PEBBLE_DIR):
-	git clone https://github.com/letsencrypt/pebble $@
+	$(GIT) clone https://github.com/letsencrypt/pebble $@
 
 $(PEBBLE_DIR)/pebble: | $(PEBBLE_DIR)
 	cd $(PEBBLE_DIR); $(GO) build -o pebble ./cmd/pebble
@@ -86,20 +72,18 @@ $(PEBBLE_DIR)/pebble-challtestsrv: | $(PEBBLE_DIR)
 .PHONY: pebble
 pebble: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv
 
-# We use an inline shell script to make this rule easier to write.
-# See https://stackoverflow.com/a/29085684/86967
-$(BIN_DIR)/%/$(BINARY_NAME): $(GO_FILES)
-	@{ \
-	set -e ;\
-	GOBUILD="$(GO) build -o $@"; \
-	if [ "$*" != "local" ]; then \
-		goos="$$(echo $* | cut -d'/' -f1)"; \
-		goarch="$$(echo $* | cut -d'/' -f2)"; \
-		GOBUILD="GOOS=$$goos GOARCH=$$goarch $$GOBUILD"; \
-	fi; \
-	echo $$GOBUILD; \
-	eval $$GOBUILD; \
-	}
+.PHONY: test-update
+test-update: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv ## Execute all tests that have an -update flag defined.
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/acme -update
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/certutil -update
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db/db -update
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db/internal/dbrecords -update
+
+# -----------------------------------------------------------------------------
+#
+# Build
+#
+# -----------------------------------------------------------------------------
 
 .PHONY: build-local ## Build a binary for the local machine only
 build-local: $(BIN_DIR)/local/$(BINARY_NAME)
@@ -107,17 +91,39 @@ build-local: $(BIN_DIR)/local/$(BINARY_NAME)
 .PHONY: build
 build: $(BINARY_FILES) ## Build all binary files
 
+$(BIN_DIR)/%/$(BINARY_NAME): $(GO_FILES)
+	@$(GO) run ./$(SCRIPTS_DIR)/xbuild $(XBUILD_ARGS) $@
+
+# -----------------------------------------------------------------------------
+#
+# Code Linters
+#
+# -----------------------------------------------------------------------------
+.PHONY: lint
+lint:
+	$(GOLANGCI_LINT) run
+	$(GOLINT) ./...
+
+# -----------------------------------------------------------------------------
+#
+# Documentation
+#
+# -----------------------------------------------------------------------------
+.PHONY: documentation
+documentation: ## Update the documentation
+	make -C doc/img svg
+
+# -----------------------------------------------------------------------------
+#
+# Cleanups
+#
+# -----------------------------------------------------------------------------
 .PHONY: clean
 clean: ## Remove all intermediate directories and files
 	rm -rf $(BIN_DIR)
 	rm -rf $(PEBBLE_DIR)
 	rm -rf $(COVERAGE_FILE)
 	rm -rf $(COVERAGE_FILE).bak
-
-.PHONY: help
-help: ## Display this help message
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-
 
 # -----------------------------------------------------------------------------
 #
@@ -141,3 +147,14 @@ pb: $(PROTOBUF_GO_FILES) ## Generate all *.pb.go files
 .PHONY: pb-clean
 pb-clean: ## Remove all *.pb.go files
 	find . -iname '*.pb.go' -delete
+
+# -----------------------------------------------------------------------------
+#
+# Help
+#
+# -----------------------------------------------------------------------------
+.PHONY: help
+help: ## Display this help message
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
