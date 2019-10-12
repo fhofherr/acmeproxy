@@ -51,7 +51,6 @@ func (ac *InMemoryAccountCreator) AssertCreated(t *testing.T, email string, clie
 	}
 	assert.Equalf(t, data.Key, client.Key, "Key of client %s did not match stored key", client.AccountURL)
 	assert.Equalf(t, data.Email, email, "Email of client %s did not match stored email", client.AccountURL)
-
 }
 
 type fakeAccountData struct {

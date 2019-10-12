@@ -18,6 +18,7 @@ func TestKindToString(t *testing.T) {
 		{errors.Kind(-1), "unknown kind"},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(fmt.Sprintf("kind %v: '%s'", tt.kind, tt.expected), func(t *testing.T) {
 			actual := tt.kind.String()
 			assert.Equal(t, tt.expected, actual)
@@ -66,6 +67,7 @@ func TestNewError(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			actual := errors.New(tt.args...)
 			// If both expected and actual are nil we are ok. Otherwise
@@ -96,6 +98,7 @@ func TestWrapError(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			actual := errors.Wrap(tt.err, tt.args...)
 			assert.Equal(t, tt.expected, actual)
@@ -141,6 +144,7 @@ func TestError_Error(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			actual := tt.err.Error()
 			assert.Equal(t, tt.expected, actual)
@@ -180,6 +184,7 @@ func TestHasCause(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			actual := errors.HasCause(tt.err, tt.cause)
 			assert.Equal(t, tt.expected, actual)

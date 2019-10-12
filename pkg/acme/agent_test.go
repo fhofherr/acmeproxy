@@ -34,7 +34,6 @@ func TestRegisterNewClient(t *testing.T) {
 			fx.AccountCreator.AssertCreated(t, tt.email, client)
 		})
 	}
-
 }
 
 func TestRegisterNewDomain(t *testing.T) {

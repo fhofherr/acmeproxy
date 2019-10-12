@@ -70,7 +70,7 @@ func (c *FakeCA) sign(domains []string) (*x509.Certificate, *rsa.PrivateKey) {
 	key := makeKey(c.T, c.KeyBits)
 	commonName := domains[0]
 	serial := big.NewInt(c.serial)
-	c.serial += 1
+	c.serial++
 	template := &x509.Certificate{
 		DNSNames: domains,
 		Subject: pkix.Name{
@@ -106,7 +106,7 @@ func (c *FakeCA) initialize() {
 		}
 		c.rootKey = makeKey(c.T, c.KeyBits)
 		c.rootCert = makeRootCert(c.T, c.rootKey, big.NewInt(c.serial))
-		c.serial += 1
+		c.serial++
 	})
 }
 
