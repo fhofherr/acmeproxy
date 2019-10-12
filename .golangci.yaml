@@ -21,6 +21,7 @@ linters:
     - maligned
     - scopelint
     - stylecheck
+    - wsl
     # TODO re-enable once we are finished with the current task
     - godox
     # TODO re-enable once we are finished with the current task

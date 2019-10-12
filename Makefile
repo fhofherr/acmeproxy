@@ -1,6 +1,10 @@
 # This is a self-documenting Makefile.
 # See https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
+# Get the directory which contains this Makefile.
+# See: http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
+PRJ_DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
 .DEFAULT_GOAL := all
 
 GO := go
@@ -8,7 +12,6 @@ GOPATH := $(shell $(GO) env GOPATH | tr -d "\n\t ")
 GOBIN := $(GOPATH)/bin
 GOLINT := $(GOBIN)/golint
 GOLANGCI_LINT := $(GOBIN)/golangci-lint
-DOCKER_COMPOSE := docker-compose
 PROTOC := protoc
 SED := sed
 
@@ -20,6 +23,8 @@ BINARY_FILES:=$(addsuffix /$(BINARY_NAME),$(addprefix $(BIN_DIR)/,$(TARGET_ARCHI
 SCRIPTS_DIR := scripts
 
 PEBBLE_DIR := .pebble
+# PRJ_DIR ends with /. We therefore omit it here.
+ACMEPROXY_PEBBLE_DIR := $(PRJ_DIR)$(PEBBLE_DIR)
 COVERAGE_FILE := .coverage.out
 
 GO_PACKAGES := $(shell $(GO) list ./... | grep -v scripts | tr "\n" ",")
@@ -31,19 +36,19 @@ GO_FILES := $(shell find . -iname '*.go' -not -path "./$(PEBBLE_DIR)/*" -not -pa
 all: documentation lint test build
 
 .PHONY: test
-test: $(COVERAGE_FILE) ## Execute all tests and show a coverage summary
+test: coverage ## Execute all tests and show a coverage summary
 
-$(COVERAGE_FILE): $(GO_FILES)
+$(COVERAGE_FILE): $(GO_FILES) $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv
 # Using -coverprofile together with -coverpkg works since Go 1.10. Thus
 # there is no need for some complicated concatenating of coverprofiles.
 # We still use an explicit list of packages for coverpkg, since using all
 # would instrument dependencies as well.
 #
 # See https://golang.org/doc/go1.10#test
-	@$(GO) test -race -covermode=atomic -coverprofile=$@ -coverpkg=$(GO_PACKAGES) ./... 2> /dev/null
-	$(SED) -i.bak '/\.pb\.go/d' $@
-	$(SED) -i.bak '/testing\.go/d' $@
-	$(SED) -i.bak '/\/testsupport\//d' $@
+	@ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test -race -covermode=atomic -coverprofile=$@ -coverpkg=$(GO_PACKAGES) ./... 2> /dev/null
+	@$(SED) -i.bak '/\.pb\.go/d' $@
+	@$(SED) -i.bak '/testing\.go/d' $@
+	@$(SED) -i.bak '/\/testsupport\//d' $@
 
 .PHONY: coverage
 coverage: $(COVERAGE_FILE) ## Compute and display the current total code coverage
@@ -53,15 +58,11 @@ coverage: $(COVERAGE_FILE) ## Compute and display the current total code coverag
 coverageHTML: $(COVERAGE_FILE) ## Create HTML coverage report
 	$(GO) tool cover -html=$(COVERAGE_FILE)
 
-.PHONY: race
-race: ## Execute all tests with race detector enabled
-	$(GO) test -race ./...
-
 .PHONY: test-update
-test-update: ## Execute all tests that have a -update flag defined.
-	$(GO) test ./pkg/certutil -update
-	$(GO) test ./pkg/db/internal/dbrecords -update
-	$(GO) test ./pkg/db/db -update
+test-update: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv ## Execute all tests that have an -update flag defined.
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/certutil -update
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db/internal/dbrecords -update
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db/db -update
 
 .PHONY: lint
 lint:
@@ -72,28 +73,17 @@ lint:
 documentation: ## Update the documentation
 	make -C doc/img svg
 
-.PHONY: dev-env-up
-dev-env-up: | $(PEBBLE_DIR) ## Start the local development environment
-	$(DOCKER_COMPOSE) -f docker/docker-compose.dev.yml up --build --detach
-	@echo
-	@echo "***** Local development environment started *****"
-	@echo
-	@echo "Execute:"
-	@echo
-	@echo "    export ACMEPROXY_PEBBLE_HOST=localhost"
-	@echo "    export ACMEPROXY_PEBBLE_TEST_CERT=$(PWD)/$(PEBBLE_DIR)/test/certs/pebble.minica.pem"
-	@echo "    export ACMEPROXY_PEBBLE_ACME_PORT=14000"
-	@echo "    export ACMEPROXY_PEBBLE_MGMT_PORT=15000"
-
-.PHONY: dev-env-down
-dev-env-down: ## Shut the local development environment down
-	$(DOCKER_COMPOSE) -f docker/docker-compose.dev.yml down
-	@echo
-	@echo "***** Local development environment stopped *****"
-	@echo
-
 $(PEBBLE_DIR):
 	git clone https://github.com/letsencrypt/pebble $@
+
+$(PEBBLE_DIR)/pebble: | $(PEBBLE_DIR)
+	cd $(PEBBLE_DIR); $(GO) build -o pebble ./cmd/pebble
+
+$(PEBBLE_DIR)/pebble-challtestsrv: | $(PEBBLE_DIR)
+	cd $(PEBBLE_DIR); $(GO) build -o pebble-challtestsrv ./cmd/pebble-challtestsrv
+
+.PHONY: pebble
+pebble: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv
 
 # We use an inline shell script to make this rule easier to write.
 # See https://stackoverflow.com/a/29085684/86967
