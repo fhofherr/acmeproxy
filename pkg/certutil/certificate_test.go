@@ -30,6 +30,7 @@ func TestReadCertificate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			commonName := "example.com"
 			certFile := filepath.Join("testdata", t.Name(), tt.certFile)
@@ -42,7 +43,6 @@ func TestReadCertificate(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
-
 }
 
 func TestWriteCertificate(t *testing.T) {
@@ -69,6 +69,7 @@ func TestWriteCertificate(t *testing.T) {
 	defer tearDown()
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			commonName := "example.com"
 			certFile := filepath.Join("testdata", t.Name(), tt.certFile)

@@ -9,24 +9,27 @@ linters-settings:
     tab-width: 4
 
 linters:
-  enable-all: true
-  disable:
-    - depguard
-    - dupl
-    - gochecknoglobals
-    - gochecknoinits
-    - goconst
-    - golint
-    - interfacer
-    - maligned
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - errcheck
+    - gocyclo
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - prealloc
     - scopelint
-    - stylecheck
-    - wsl
-    # TODO re-enable once we are finished with the current task
-    - godox
-    # TODO re-enable once we are finished with the current task
-    - funlen
-    # TODO re-enable once we are finished with the current task
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unparam
+    - unused
+    - varcheck
     - whitespace
 
 issues:

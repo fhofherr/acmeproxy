@@ -2,11 +2,11 @@ package acme_test
 
 import (
 	"bytes"
+	"path/filepath"
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
-	"github.com/fhofherr/acmeproxy/pkg/acme/acmetest"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ func TestRegisterNewClient(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			fx := newAgentFixture(t)
+			fx := newAgentFixture(t, "www.example.com")
 			err := fx.Agent.RegisterClient(tt.clientID, tt.email)
 			assert.NoError(t, err)
 			client, err := fx.ClientRepository.GetClient(tt.clientID)
@@ -34,17 +34,16 @@ func TestRegisterNewClient(t *testing.T) {
 			fx.AccountCreator.AssertCreated(t, tt.email, client)
 		})
 	}
-
 }
 
 func TestRegisterNewDomain(t *testing.T) {
-	fx := newAgentFixture(t)
+	domainName := "www.example.com"
+	fx := newAgentFixture(t, domainName)
 
 	clientID := uuid.Must(uuid.NewRandom())
 	err := fx.Agent.RegisterClient(clientID, "")
 	assert.NoError(t, err)
 
-	domainName := "www.example.com"
 	err = fx.Agent.RegisterDomain(clientID, domainName)
 	assert.NoError(t, err)
 
@@ -61,7 +60,7 @@ func TestRegisterNewDomain(t *testing.T) {
 	certBuf := bytes.Buffer{}
 	err = fx.Agent.WriteCertificate(clientID, domainName, &certBuf)
 	assert.NoError(t, err)
-	fx.FakeCA.AssertIssued(t, domainName, certBuf.Bytes())
+	fx.FakeCA.AssertIssuedCertificate(certBuf.Bytes())
 
 	keyBuf := bytes.Buffer{}
 	err = fx.Agent.WritePrivateKey(clientID, domainName, &keyBuf)
@@ -70,16 +69,17 @@ func TestRegisterNewDomain(t *testing.T) {
 }
 
 func TestRegisterDomainForUnknownClient(t *testing.T) {
-	fx := newAgentFixture(t)
+	domainName := "www.example.com"
+	fx := newAgentFixture(t, domainName)
 
 	clientID := uuid.Must(uuid.NewRandom())
-	domainName := "www.example.com"
 	err := fx.Agent.RegisterDomain(clientID, domainName)
 	assert.Error(t, err)
 }
 
 func TestRegisterSameDomainForDifferentClients(t *testing.T) {
-	fx := newAgentFixture(t)
+	domain := "www.example.org"
+	fx := newAgentFixture(t, domain)
 
 	clientID1 := uuid.Must(uuid.NewRandom())
 	err := fx.Agent.RegisterClient(clientID1, "")
@@ -89,7 +89,6 @@ func TestRegisterSameDomainForDifferentClients(t *testing.T) {
 	err = fx.Agent.RegisterClient(clientID2, "")
 	assert.NoError(t, err)
 
-	domain := "www.example.com"
 	err = fx.Agent.RegisterDomain(clientID1, domain)
 	assert.NoError(t, err)
 
@@ -98,15 +97,25 @@ func TestRegisterSameDomainForDifferentClients(t *testing.T) {
 }
 
 type agentFixture struct {
-	FakeCA           *acmetest.FakeCA
+	FakeCA           *acme.FileBasedCertificateObtainer
 	ClientRepository *acme.InMemoryClientRepository
 	DomainRepository *acme.InMemoryDomainRepository
 	AccountCreator   *acme.InMemoryAccountCreator
 	Agent            *acme.Agent
 }
 
-func newAgentFixture(t *testing.T) agentFixture {
-	fakeCA := &acmetest.FakeCA{T: t}
+func newAgentFixture(t *testing.T, commonName string) agentFixture {
+	keyFile := filepath.Join("testdata", t.Name(), "rsa2048.pem")
+	certFile := filepath.Join("testdata", t.Name(), "certificate.pem")
+	if *acme.FlagUpdate {
+		certutil.CreateOpenSSLPrivateKey(t, keyFile)
+		certutil.CreateOpenSSLSelfSignedCertificate(t, commonName, keyFile, certFile, true)
+	}
+	fakeCA := &acme.FileBasedCertificateObtainer{
+		CertFile: certFile,
+		KeyFile:  keyFile,
+		T:        t,
+	}
 	clientRepository := &acme.InMemoryClientRepository{}
 	domainRepository := &acme.InMemoryDomainRepository{}
 	accountCreator := &acme.InMemoryAccountCreator{}

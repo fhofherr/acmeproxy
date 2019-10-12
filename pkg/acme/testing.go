@@ -3,10 +3,13 @@ package acme
 import (
 	"crypto"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"reflect"
 	"sync"
 	"testing"
 
+	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +54,6 @@ func (ac *InMemoryAccountCreator) AssertCreated(t *testing.T, email string, clie
 	}
 	assert.Equalf(t, data.Key, client.Key, "Key of client %s did not match stored key", client.AccountURL)
 	assert.Equalf(t, data.Email, email, "Email of client %s did not match stored email", client.AccountURL)
-
 }
 
 type fakeAccountData struct {
@@ -145,4 +147,48 @@ func (r *InMemoryClientRepository) GetClient(id uuid.UUID) (Client, error) {
 		return c, nil
 	}
 	return Client{}, ClientNotFound{ClientID: id}
+}
+
+// FileBasedCertificateObtainer reads certificates from files and returns them
+// when ObtainCertificate is called.
+type FileBasedCertificateObtainer struct {
+	T        *testing.T // test using this instance of FakeCA.
+	CertFile string     // file containing PEM encoded the certificate returned by ObtainCertificate
+	KeyFile  string     // file containing PEM encoded the private key returned by ObtainCertificate
+}
+
+// ObtainCertificate reads CertFail and KeyFile and returns their contents.
+func (c *FileBasedCertificateObtainer) ObtainCertificate(
+	req acmeclient.CertificateRequest,
+) (
+	*acmeclient.CertificateInfo,
+	error,
+) {
+	cert := c.readCertFile()
+	key, err := ioutil.ReadFile(c.KeyFile)
+	if err != nil {
+		c.T.Fatalf("read test key: %v", err)
+	}
+	certInfo := &acmeclient.CertificateInfo{
+		Certificate: cert,
+		PrivateKey:  key,
+	}
+	return certInfo, nil
+}
+
+// AssertIssuedCertificate asserts that the passed certificate was issued by
+// the file based certificate authority.
+func (c *FileBasedCertificateObtainer) AssertIssuedCertificate(cert []byte) {
+	expected := c.readCertFile()
+	if !reflect.DeepEqual(expected, cert) {
+		c.T.Error("certificates do not match")
+	}
+}
+
+func (c *FileBasedCertificateObtainer) readCertFile() []byte {
+	cert, err := ioutil.ReadFile(c.CertFile)
+	if err != nil {
+		c.T.Fatalf("read test certificate: %v", err)
+	}
+	return cert
 }
