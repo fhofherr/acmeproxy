@@ -10,6 +10,7 @@ GIT := $(shell command -v git 2> /dev/null)
 GO := $(shell command -v go 2> /dev/null)
 GOLANGCI_LINT := $(shell command -v golangci-lint 2> /dev/null)
 GOLINT := $(shell command -v golint 2> /dev/null)
+PODMAN := $(shell command -v podman 2> /dev/null)
 PROTOC := $(shell command -v protoc 2> /dev/null)
 SED := $(shell command -v sed 2> /dev/null)
 
@@ -85,14 +86,24 @@ test-update: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv ## Execute a
 #
 # -----------------------------------------------------------------------------
 
-.PHONY: build-local ## Build a binary for the local machine only
-build-local: $(BIN_DIR)/local/$(BINARY_NAME)
+.PHONY: build-local
+build-local: $(BIN_DIR)/local/$(BINARY_NAME) ## Build a binary for the local machine only
 
 .PHONY: build
 build: $(BINARY_FILES) ## Build all binary files
 
 $(BIN_DIR)/%/$(BINARY_NAME): $(GO_FILES)
 	@$(GO) run ./$(SCRIPTS_DIR)/xbuild $(XBUILD_ARGS) $@
+
+# -----------------------------------------------------------------------------
+#
+# Build Docker image
+#
+# -----------------------------------------------------------------------------
+.PHONY: build-image
+build-image: ## Build a Docker image and tag it as acmeproxy:latest
+	$(PODMAN) build --tag acmeproxy:latest .
+
 
 # -----------------------------------------------------------------------------
 #

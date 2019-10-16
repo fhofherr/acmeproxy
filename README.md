@@ -121,13 +121,13 @@ section details how to use `acmeproxy` in both ways.
 
 In order to start `acmeproxy` as a server execute
 
-    acmeproxy server
+    acmeproxy serve
 
 By default `acmeproxy` should work as intended out of the box. If you
 want to override certain settings environment variables as well as
 command line arguments can be used. The command
 
-    acmeproxy help server
+    acmeproxy help serve
 
 gives a detailed explanation of the various command line arguments.
 
@@ -167,10 +167,24 @@ such an instance is not configured.
 If `make test` is called `pebble` is automatically downloaded and
 compiled. All tests relying on pebble are executed.
 
-### Linter
+#### Test environment
 
-`acmeproxy` uses GolangCI. The full report can be found
-[here](https://golangci.com/r/github.com/fhofherr/acmeproxy)
+In order to start an instance of `acmeproxy` in a test environment use
+the `test-env.sh` script in the `scripts` directory:
+
+```bash
+./scripts/test-env.sh start
+```
+
+To stop the started test environment call:
+
+```bash
+./scripts/test-env-sh stop
+
+```
+
+The `test-env.sh` script creates a pod using `podman` and adds all
+containers necessary to execute `acmeproxy` locally.
 
 ## License
 

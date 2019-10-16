@@ -1,0 +1,7 @@
+.dockerignore
+.code/
+.idea/
+.pebble/
+
+bin/
+Dockerfile
