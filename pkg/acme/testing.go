@@ -9,7 +9,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -159,9 +158,9 @@ type FileBasedCertificateObtainer struct {
 
 // ObtainCertificate reads CertFail and KeyFile and returns their contents.
 func (c *FileBasedCertificateObtainer) ObtainCertificate(
-	req acmeclient.CertificateRequest,
+	req CertificateRequest,
 ) (
-	*acmeclient.CertificateInfo,
+	*CertificateInfo,
 	error,
 ) {
 	cert := c.readCertFile()
@@ -169,7 +168,7 @@ func (c *FileBasedCertificateObtainer) ObtainCertificate(
 	if err != nil {
 		c.T.Fatalf("read test key: %v", err)
 	}
-	certInfo := &acmeclient.CertificateInfo{
+	certInfo := &CertificateInfo{
 		Certificate: cert,
 		PrivateKey:  key,
 	}

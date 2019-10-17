@@ -5,7 +5,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/go-acme/lego/lego"
 	"github.com/google/uuid"
@@ -15,12 +14,36 @@ import (
 // DefaultDirectoryURL points to Let's Encrypt's production directory.
 const DefaultDirectoryURL = lego.LEDirectoryProduction
 
+// DefaultKeyType is the default key type to use if the CertificateRequest does
+// not specify one.
+const DefaultKeyType = certutil.RSA2048
+
+// CertificateRequest represents a request by an ACME protocol User to obtain
+// or renew a certificate.
+type CertificateRequest struct {
+	Email      string            // Email address of the person responsible for the domains.
+	AccountURL string            // URL of an already existing account; empty if no account exists.
+	AccountKey crypto.PrivateKey // Private key of the account; don't confuse with the private key of a certificate.
+
+	KeyType certutil.KeyType // Type of key to use when requesting a certificate. Defaults to DefaultKeyType if not set.
+	Domains []string         // Domains for which a certificate is requested.
+	Bundle  bool             // Bundle issuer certificate with issued certificate.
+}
+
+// CertificateInfo represents an ACME certificate along with its meta
+// information.
+type CertificateInfo struct {
+	URL               string // URL of the certificate.
+	AccountURL        string // URL of the certificate owner's account.
+	Certificate       []byte // The actual certificate.
+	PrivateKey        []byte // Private key used to generate the certificate.
+	IssuerCertificate []byte // Certificate of the issuer of the certificate.
+}
+
 // CertificateObtainer wraps the ObtainCertificate method which obtains
 // a certificate for a specific domain from an ACME certificate authority.
-// TODO(fhofherr) move CertificateInfo to acme package
-// TODO(fhofherr) move CertificateRequest to acme package
 type CertificateObtainer interface {
-	ObtainCertificate(acmeclient.CertificateRequest) (*acmeclient.CertificateInfo, error)
+	ObtainCertificate(CertificateRequest) (*CertificateInfo, error)
 }
 
 // AccountCreator wraps the CreateAccount method which creates an new
@@ -104,10 +127,10 @@ func (a *Agent) RegisterDomain(clientID uuid.UUID, domainName string) error {
 			return nil
 		}
 
-		req := acmeclient.CertificateRequest{
+		req := CertificateRequest{
 			AccountURL: client.AccountURL,
 			AccountKey: client.Key,
-			KeyType:    acmeclient.DefaultKeyType,
+			KeyType:    DefaultKeyType,
 			Domains:    []string{domainName},
 			Bundle:     true,
 		}

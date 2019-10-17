@@ -3,16 +3,12 @@ package acmeclient
 import (
 	"crypto"
 
-	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/go-acme/lego/certificate"
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
 	"github.com/pkg/errors"
 )
-
-// DefaultKeyType is the default key type to use if the CertificateRequest does
-// not specify one.
-const DefaultKeyType = certutil.RSA2048
 
 // Client is an ACME protocol client capable of obtaining and renewing
 // certificates.
@@ -43,7 +39,7 @@ func (c *Client) CreateAccount(accountKey crypto.PrivateKey, email string) (stri
 }
 
 // ObtainCertificate obtains a new certificate from the remote ACME server.
-func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, error) {
+func (c *Client) ObtainCertificate(req acme.CertificateRequest) (*acme.CertificateInfo, error) {
 	// TODO err if len(req.Domains) < 1
 	keyType, err := legoKeyType(req.KeyType)
 	if err != nil {
@@ -80,33 +76,11 @@ func (c *Client) ObtainCertificate(req CertificateRequest) (*CertificateInfo, er
 	if err != nil {
 		return nil, errors.Wrapf(err, "obtain certificates %s", req.Domains[0])
 	}
-	return &CertificateInfo{
+	return &acme.CertificateInfo{
 		URL:               certs.CertURL,
 		AccountURL:        user.Registration.URI,
 		Certificate:       certs.Certificate,
 		IssuerCertificate: certs.IssuerCertificate,
 		PrivateKey:        certs.PrivateKey,
 	}, nil
-}
-
-// CertificateRequest represents a request by an ACME protocol User to obtain
-// or renew a certificate.
-type CertificateRequest struct {
-	Email      string            // Email address of the person responsible for the domains.
-	AccountURL string            // URL of an already existing account; empty if no account exists.
-	AccountKey crypto.PrivateKey // Private key of the account; don't confuse with the private key of a certificate.
-
-	KeyType certutil.KeyType // Type of key to use when requesting a certificate. Defaults to DefaultKeyType if not set.
-	Domains []string         // Domains for which a certificate is requested.
-	Bundle  bool             // Bundle issuer certificate with issued certificate.
-}
-
-// CertificateInfo represents an ACME certificate along with its meta
-// information.
-type CertificateInfo struct {
-	URL               string // URL of the certificate.
-	AccountURL        string // URL of the certificate owner's account.
-	Certificate       []byte // The actual certificate.
-	PrivateKey        []byte // Private key used to generate the certificate.
-	IssuerCertificate []byte // Certificate of the issuer of the certificate.
 }

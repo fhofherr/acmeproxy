@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
@@ -47,12 +48,12 @@ func TestObtainCertificate(t *testing.T) {
 	defer tearDown()
 
 	tests := []struct {
-		acmeclient.CertificateRequest
+		acme.CertificateRequest
 		name string
 	}{
 		{
 			name: "obtain certificate without account",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+RSA2048@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -61,7 +62,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain RSA4096 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+RSA4096@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -71,7 +72,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain RSA8192 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+RSA8192@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -81,7 +82,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain EC256 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+EC256@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -91,7 +92,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain EC384 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+EC384@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -130,7 +131,7 @@ func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
 	accountURL, err := fx.Client.CreateAccount(accountKey, "jane.doe@example.com")
 	assert.NoError(t, err)
 
-	req := acmeclient.CertificateRequest{
+	req := acme.CertificateRequest{
 		Email:      "jane.doe+RSA2048@example.com",
 		AccountURL: accountURL,
 		Domains:    []string{domain},
