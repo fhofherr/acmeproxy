@@ -109,7 +109,6 @@ func (s *Server) initialize() {
 }
 func (s *Server) registerAcmeproxyDomain() {
 	tmpClientID := uuid.Must(uuid.NewRandom())
-	// TODO (fhofherr) make acmeproxy admin mail configurable
 	err := s.acmeAgent.RegisterClient(tmpClientID, "")
 	if err != nil {
 		log.Log(s.Logger,
@@ -117,7 +116,6 @@ func (s *Server) registerAcmeproxyDomain() {
 			"error", err,
 			"message", "register default client")
 	}
-	// TODO (fhofherr) make acmeproxy domain configurable
 	err = s.acmeAgent.RegisterDomain(tmpClientID, "www.example.com")
 	if err != nil {
 		log.Log(s.Logger,
