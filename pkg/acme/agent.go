@@ -79,9 +79,6 @@ type Agent struct {
 //
 // RegisterClient does nothing if the client has already been registered with
 // the Agent.
-//
-// TODO(fhofherr) figure out a way to update the clients account, e.g. if they
-//                wish to provide or remove an email address.
 func (a *Agent) RegisterClient(clientID uuid.UUID, email string) error {
 	_, err := a.Clients.UpdateClient(clientID, func(c *Client) error {
 		if !c.IsZero() {
