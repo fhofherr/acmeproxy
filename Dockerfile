@@ -7,7 +7,7 @@ COPY --chown=go-build:go-build . .
 
 USER go-build
 RUN go mod verify
-RUN XBUILD_ARGS="-static" make bin/linux/amd64/acmeproxy
+RUN XBUILD_FLAGS="-static" make bin/linux/amd64/acmeproxy
 
 FROM alpine:3.10 as run
 RUN adduser -D acmeproxy

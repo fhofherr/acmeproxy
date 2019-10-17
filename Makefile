@@ -93,7 +93,7 @@ build-local: $(BIN_DIR)/local/$(BINARY_NAME) ## Build a binary for the local mac
 build: $(BINARY_FILES) ## Build all binary files
 
 $(BIN_DIR)/%/$(BINARY_NAME): $(GO_FILES)
-	@$(GO) run ./$(SCRIPTS_DIR)/xbuild $(XBUILD_ARGS) $@
+	@$(GO) run ./$(SCRIPTS_DIR)/xbuild $(XBUILD_FLAGS) $@
 
 # -----------------------------------------------------------------------------
 #
