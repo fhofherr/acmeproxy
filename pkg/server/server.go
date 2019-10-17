@@ -91,7 +91,6 @@ func (s *Server) initialize() {
 	}
 	acmeClient := &acmeclient.Client{
 		DirectoryURL: s.ACMEDirectoryURL,
-		HTTP01Solver: acmeclient.NewHTTP01Solver(),
 	}
 	s.acmeAgent = &acme.Agent{
 		Domains:      s.boltDB.DomainRepository(),
@@ -103,7 +102,7 @@ func (s *Server) initialize() {
 		Addr:   s.HTTPAPIAddr,
 		Logger: s.Logger,
 		Handler: httpapi.NewRouter(httpapi.Config{
-			Solver: acmeClient.HTTP01Solver,
+			Solver: &acmeClient.HTTP01Solver,
 		}),
 	}
 }

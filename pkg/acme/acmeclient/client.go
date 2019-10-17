@@ -14,7 +14,7 @@ import (
 // certificates.
 type Client struct {
 	DirectoryURL string
-	HTTP01Solver *HTTP01Solver
+	HTTP01Solver HTTP01Solver
 }
 
 // CreateAccount creates a new ACME account for the accountKey.
@@ -64,7 +64,7 @@ func (c *Client) ObtainCertificate(req acme.CertificateRequest) (*acme.Certifica
 	if err != nil {
 		return nil, errors.Wrap(err, "create lego client")
 	}
-	err = legoClient.Challenge.SetHTTP01Provider(c.HTTP01Solver)
+	err = legoClient.Challenge.SetHTTP01Provider(&c.HTTP01Solver)
 	if err != nil {
 		return nil, errors.Wrap(err, "set challenge provider")
 	}

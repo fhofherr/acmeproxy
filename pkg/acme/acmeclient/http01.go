@@ -2,7 +2,10 @@ package acmeclient
 
 import (
 	"fmt"
+	"net/http"
 	"sync"
+
+	"github.com/fhofherr/golf/log"
 )
 
 // HTTP01Solver is a custom challenge provider for the HTTP01 challenge.
@@ -15,29 +18,27 @@ import (
 //
 // The methods Present and CleanUp are intended for use by lego and should not
 // be called directly.
+//
+// The zero value of HTTP01Solver is fully functional.
 type HTTP01Solver struct {
+	Logger     log.Logger
 	challenges map[string]string
-	mu         *sync.Mutex
-}
-
-// NewHTTP01Solver creates and initializes an HTTP01Solver.
-func NewHTTP01Solver() *HTTP01Solver {
-	return &HTTP01Solver{
-		challenges: make(map[string]string),
-		mu:         &sync.Mutex{},
-	}
+	mu         sync.Mutex
 }
 
 // Present registers a solution for a HTTP01 challenge with the HTTP01Solver.
 //
 // This method is intended to be used by lego and should not be called directly.
 func (p *HTTP01Solver) Present(domain, token, keyAuth string) error {
-	k := challengeKey(domain, token)
-
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	p.challenges[k] = keyAuth
+	if p.challenges == nil {
+		p.challenges = make(map[string]string)
+	}
+
+	key := challengeKey(domain, token)
+	p.challenges[key] = keyAuth
 	return nil
 }
 
@@ -45,42 +46,42 @@ func (p *HTTP01Solver) Present(domain, token, keyAuth string) error {
 //
 // This method is intended to be used by lego and should not be called directly.
 func (p *HTTP01Solver) CleanUp(domain, token, keyAuth string) error {
-	k := challengeKey(domain, token)
-
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	delete(p.challenges, k)
+	key := challengeKey(domain, token)
+	delete(p.challenges, key)
 	return nil
 }
 
-// SolveChallenge tries to find the key authorization for the passed domain
-// and token.
+// Handler creates an http.Handler serving the actual HTTP01 challenge.
 //
-// If the key authorization could not be found an instance of ErrChallengeFailed
-// is returned as error.
-// TODO(fhofherr): change signature to HTTP01ChallengeSolver(func(*http.Request) map[string]string) http.Handler
-func (p *HTTP01Solver) SolveChallenge(domain, token string) (string, error) {
-	k := challengeKey(domain, token)
+// The extractParams function is used to extract the required parameters from
+// the request. It must return a map containing the keys domain and token, or nil if the map cannot be constructed.
+func (p *HTTP01Solver) Handler(extractParams func(*http.Request) map[string]string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		p.mu.Lock()
+		defer p.mu.Unlock()
 
-	p.mu.Lock()
-	defer p.mu.Unlock()
+		params := extractParams(req)
+		domain := params["domain"]
+		token := params["token"]
 
-	keyAuth, ok := p.challenges[k]
-	if !ok {
-		return "", ErrChallengeFailed{Domain: domain, Token: token}
+		key := challengeKey(domain, token)
+		keyAuth, ok := p.challenges[key]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			p.writeBody(w, []byte("Not found"))
+			return
+		}
+		p.writeBody(w, []byte(keyAuth))
+	})
+}
+
+func (p *HTTP01Solver) writeBody(w http.ResponseWriter, body []byte) {
+	if _, err := w.Write(body); err != nil {
+		log.Log(p.Logger, "level", "warn", "error", err)
 	}
-	return keyAuth, nil
-}
-
-// ErrChallengeFailed signals that the HTTP01Solver could not solve the challenge.
-type ErrChallengeFailed struct {
-	Domain string
-	Token  string
-}
-
-func (e ErrChallengeFailed) Error() string {
-	return fmt.Sprintf("challenge failed for: %s", e.Domain)
 }
 
 func challengeKey(domain, token string) string {

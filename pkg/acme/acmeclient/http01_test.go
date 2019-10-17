@@ -2,7 +2,11 @@ package acmeclient_test
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -11,47 +15,66 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHTTP01Handler_GetKeyAuthForTokenAndDomain(t *testing.T) {
+func TestHTTP01Solver_GetKeyAuthForTokenAndDomain(t *testing.T) {
 	domain := "www.example.com"
 	token := "token"
 	keyAuth := "keyAuth"
 
-	handler := acmeclient.NewHTTP01Solver()
-	err := handler.Present(domain, token, keyAuth)
+	solver := acmeclient.HTTP01Solver{}
+	err := solver.Present(domain, token, keyAuth)
 	assert.NoError(t, err)
-	actualKeyAuth, err := handler.SolveChallenge(domain, token)
-	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	handler := solver.Handler(newParamExtractor(t, req, domain, token))
+	status, actualKeyAuth := exerciseHandler(t, handler)
+
+	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, keyAuth, actualKeyAuth)
 }
 
-func TestHTTP01Handler_ReturnErrorOnMissingKeyAuth(t *testing.T) {
+func TestHTTP01Solver_ReturnNotFoundOnMissingKeyAuth(t *testing.T) {
 	domain := "www.example.com"
 	token := "token"
 
-	handler := acmeclient.NewHTTP01Solver()
-	_, err := handler.SolveChallenge(domain, token)
-	assert.Error(t, err)
-	assert.Equal(t, acmeclient.ErrChallengeFailed{Domain: domain, Token: token}, err)
+	solver := acmeclient.HTTP01Solver{}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	handler := solver.Handler(newParamExtractor(t, req, domain, token))
+	status, _ := exerciseHandler(t, handler)
+
+	assert.Equal(t, http.StatusNotFound, status)
 }
 
-func TestHTTP01Handler_CleanUpAfterSuccessfulChallenge(t *testing.T) {
+func TestHTTP01Solver_CleanUpRemovesKeyAuth(t *testing.T) {
 	domain := "www.example.com"
 	token := "token"
 	keyAuth := "keyAuth"
 
-	handler := acmeclient.NewHTTP01Solver()
-	err := handler.Present(domain, token, keyAuth)
+	solver := acmeclient.HTTP01Solver{}
+	err := solver.Present(domain, token, keyAuth)
 	assert.NoError(t, err)
 
-	err = handler.CleanUp(domain, token, keyAuth)
+	err = solver.CleanUp(domain, token, keyAuth)
 	assert.NoError(t, err)
 
-	_, err = handler.SolveChallenge(domain, token)
-	assert.Equal(t, acmeclient.ErrChallengeFailed{Domain: domain, Token: token}, err)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	handler := solver.Handler(newParamExtractor(t, req, domain, token))
+	status, _ := exerciseHandler(t, handler)
+
+	assert.Equal(t, http.StatusNotFound, status)
 }
 
-func TestHTTP01Handler_ConcurrentAccess(t *testing.T) {
-	handler := acmeclient.NewHTTP01Solver()
+func TestHTTP01Solver_CleanUpOnNewSolverDoesNotFail(t *testing.T) {
+	domain := "www.example.com"
+	token := "token"
+	keyAuth := "keyAuth"
+
+	solver := acmeclient.HTTP01Solver{}
+	err := solver.CleanUp(domain, token, keyAuth)
+	assert.NoError(t, err)
+}
+
+func TestHTTP01Solver_ConcurrentAccess(t *testing.T) {
+	solver := acmeclient.HTTP01Solver{}
 	n := 10
 	maxSleep := int64(31)
 	wg := sync.WaitGroup{}
@@ -65,22 +88,50 @@ func TestHTTP01Handler_ConcurrentAccess(t *testing.T) {
 
 			time.Sleep(time.Duration(rand.Int63n(maxSleep)) * time.Millisecond)
 
-			err := handler.Present(domain, token, keyAuth)
+			err := solver.Present(domain, token, keyAuth)
 			assert.NoError(t, err)
 
 			time.Sleep(time.Duration(rand.Int63n(maxSleep)) * time.Millisecond)
 
-			act, err := handler.SolveChallenge(domain, token)
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			handler := solver.Handler(newParamExtractor(t, req, domain, token))
+			status, keyAuth := exerciseHandler(t, handler)
+
 			assert.NoError(t, err)
-			assert.Equal(t, keyAuth, act)
+			assert.Equal(t, http.StatusOK, status)
+			assert.Equal(t, keyAuth, keyAuth)
 
 			time.Sleep(time.Duration(rand.Int63n(maxSleep)) * time.Millisecond)
 
-			err = handler.CleanUp(domain, token, keyAuth)
+			err = solver.CleanUp(domain, token, keyAuth)
 			assert.NoError(t, err)
 
 			wg.Done()
 		}(i)
 	}
 	wg.Wait()
+}
+
+func newParamExtractor(t *testing.T, req *http.Request, domain, token string) func(*http.Request) map[string]string {
+	return func(actual *http.Request) map[string]string {
+		if !reflect.DeepEqual(req, actual) {
+			t.Fatal("Actual request did not equal expected")
+			return nil
+		}
+		return map[string]string{
+			"domain": domain,
+			"token":  token,
+		}
+	}
+}
+
+func exerciseHandler(t *testing.T, handler http.Handler) (int, string) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	body, err := ioutil.ReadAll(rr.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+	return rr.Code, string(body)
 }

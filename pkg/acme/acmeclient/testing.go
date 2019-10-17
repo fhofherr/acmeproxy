@@ -21,7 +21,7 @@ const (
 // TestFixture wraps a Client suitable for testing.
 type TestFixture struct {
 	Pebble *testsupport.Pebble
-	Client Client
+	Client *Client
 }
 
 // NewTestFixture creates a new test fixture.
@@ -30,11 +30,10 @@ func NewTestFixture(t *testing.T) (TestFixture, func()) {
 	pebble.Start(t)
 
 	resetCACerts := testsupport.SetLegoCACertificates(t, pebble.TestCert)
-	client := Client{
+	client := &Client{
 		DirectoryURL: pebble.DirectoryURL(),
-		HTTP01Solver: NewHTTP01Solver(),
 	}
-	server := NewChallengeServer(t, client.HTTP01Solver, pebble.HTTPPort())
+	server := NewChallengeServer(t, &client.HTTP01Solver, pebble.HTTPPort())
 	fixture := TestFixture{
 		Pebble: pebble,
 		Client: client,
@@ -48,8 +47,8 @@ func NewTestFixture(t *testing.T) (TestFixture, func()) {
 
 // NewChallengeServer creates an httptest.Server which uses the handler to
 // serve HTTP01 challenges.
-func NewChallengeServer(t *testing.T, handler *HTTP01Solver, port int) *httptest.Server {
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+func NewChallengeServer(t *testing.T, solver *HTTP01Solver, port int) *httptest.Server {
+	server := httptest.NewUnstartedServer(solver.Handler(func(req *http.Request) map[string]string {
 		portSuffix := fmt.Sprintf(":%d", port)
 		domain := strings.Replace(req.Host, portSuffix, "", -1)
 		pathParts := strings.Split(req.URL.Path, "/")
@@ -57,24 +56,11 @@ func NewChallengeServer(t *testing.T, handler *HTTP01Solver, port int) *httptest
 			t.Fatalf("Could not obtain token from url: %v", req.URL)
 		}
 		token := pathParts[len(pathParts)-1]
-		keyAuth, err := handler.SolveChallenge(domain, token)
-		w.Header().Add("content-type", "application/octet-stream")
-		if failedErr, ok := err.(ErrChallengeFailed); ok {
-			t.Log(failedErr)
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			t.Errorf("SolveChallenge failed: %+v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		_, err = w.Write([]byte(keyAuth))
-		if err != nil {
-			t.Error(err)
+		return map[string]string{
+			"domain": domain,
+			"token":  token,
 		}
 	}))
-
 	address := fmt.Sprintf("127.0.0.1:%d", port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
