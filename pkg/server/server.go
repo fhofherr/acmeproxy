@@ -50,13 +50,16 @@ func (s *Server) Start() error {
 	}
 	s.initialize()
 
-	err := s.boltDB.Open()
-	if err != nil {
-		return errors.New(op, "open database", err)
+	if err := s.boltDB.Open(); err != nil {
+		return errors.New(op, err)
 	}
-	// TODO (fhofherr) the APIServer's Start method must return an error if something goes wrong.
-	s.httpAPIServer.Start()
-	s.registerAcmeproxyDomain()
+	go func() {
+		errors.Log(s.Logger, s.httpAPIServer.Start())
+	}()
+
+	if err := s.registerAcmeproxyDomain(); err != nil {
+		return errors.New(op, err)
+	}
 	return nil
 }
 
@@ -75,11 +78,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if !s.isStarted() {
 		return errors.New(op, "not started")
 	}
-	// TODO (fhofherr) the APIServer's Shutdown method must return an error if something goes wrong.
-	s.httpAPIServer.Shutdown(ctx)
-	// TODO (fhofherr) check the error returned by Close
-	s.boltDB.Close()
-	return nil
+
+	var errcol errors.Collection
+	errcol = errors.Append(errcol, s.httpAPIServer.Shutdown(ctx), op)
+	errcol = errors.Append(errcol, s.boltDB.Close(), op)
+	return errcol.ErrorOrNil()
 }
 
 // initialize initializes the un-exported fields of Server. It must not
@@ -107,20 +110,15 @@ func (s *Server) initialize() {
 		}),
 	}
 }
-func (s *Server) registerAcmeproxyDomain() {
+func (s *Server) registerAcmeproxyDomain() error {
+	const op errors.Op = "server/server.registerAcmeproxyDomain"
+
 	tmpClientID := uuid.Must(uuid.NewRandom())
-	err := s.acmeAgent.RegisterClient(tmpClientID, "")
-	if err != nil {
-		log.Log(s.Logger,
-			"level", "error",
-			"error", err,
-			"message", "register default client")
+	if err := s.acmeAgent.RegisterClient(tmpClientID, ""); err != nil {
+		return errors.New(op, "register default client", err)
 	}
-	err = s.acmeAgent.RegisterDomain(tmpClientID, "www.example.com")
-	if err != nil {
-		log.Log(s.Logger,
-			"level", "error",
-			"error", err,
-			"message", fmt.Sprintf("register acmeproxy domain: %s", "www.example.com"))
+	if err := s.acmeAgent.RegisterDomain(tmpClientID, "www.example.com"); err != nil {
+		return errors.New(op, fmt.Sprintf("register acmeproxy domain: %s", "www.example.com"), err)
 	}
+	return nil
 }
