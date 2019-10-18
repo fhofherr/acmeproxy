@@ -17,7 +17,7 @@ var legoOnce sync.Once
 //
 // Lego uses a global variable to store a logger. In order to use a different
 // loger this variable has to be set. The InitializeLego function uses a
-// sync.Once that the Logger is set only once, no matter how often the function
+// sync.Once ensures that the Logger is set only once, no matter how often the function
 // is called. However, direct access to leoglog.Logger cannot be protected.
 func InitializeLego(logger log.Logger) {
 	legoOnce.Do(func() {
