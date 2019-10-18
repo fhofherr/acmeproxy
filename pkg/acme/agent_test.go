@@ -108,7 +108,7 @@ func newAgentFixture(t *testing.T, commonName string) agentFixture {
 	keyFile := filepath.Join("testdata", t.Name(), "rsa2048.pem")
 	certFile := filepath.Join("testdata", t.Name(), "certificate.pem")
 	if *testsupport.FlagUpdate {
-		certutil.CreateOpenSSLPrivateKey(t, keyFile)
+		certutil.CreateOpenSSLPrivateKey(t, certutil.RSA2048, keyFile, true)
 		certutil.CreateOpenSSLSelfSignedCertificate(t, commonName, keyFile, certFile, true)
 	}
 	fakeCA := &acme.FileBasedCertificateObtainer{

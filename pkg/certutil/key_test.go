@@ -76,7 +76,7 @@ func TestReadPrivateKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			keyPath := filepath.Join("testdata", t.Name())
 			if *testsupport.FlagUpdate {
-				certutil.CreateOpenSSLPrivateKey(t, keyPath)
+				certutil.CreateOpenSSLPrivateKey(t, tt.keyType, keyPath, tt.pem)
 			}
 			r, err := os.Open(keyPath)
 			if !assert.NoError(t, err) {
@@ -116,7 +116,7 @@ func TestReadConcatenatedPEMBlocks(t *testing.T) {
 	}
 	if *testsupport.FlagUpdate {
 		for _, path := range certFiles {
-			certutil.CreateOpenSSLPrivateKey(t, path)
+			certutil.CreateOpenSSLPrivateKey(t, certutil.EC256, path, true)
 		}
 	}
 	pemBytes := make([]byte, 0, 1024)
@@ -158,7 +158,7 @@ func TestWritePrivateKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srcKeyPath := filepath.Join("testdata", t.Name())
 			if *testsupport.FlagUpdate {
-				certutil.CreateOpenSSLPrivateKey(t, srcKeyPath)
+				certutil.CreateOpenSSLPrivateKey(t, tt.keyType, srcKeyPath, tt.pemEncode)
 			}
 			pk := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(tt.keyType, srcKeyPath, tt.pemEncode))
 			targetKeyPath := filepath.Join(tmpDir, tt.name)

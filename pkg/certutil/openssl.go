@@ -15,31 +15,33 @@ import (
 // need such files. Writing them with our own code seems awkward. Therefore we
 // use openssl to write those files. The files are checked into version control
 // to allow the tests to succeed on systems where openssl is not available.
-func CreateOpenSSLPrivateKey(t *testing.T, keyPath string) {
+func CreateOpenSSLPrivateKey(t *testing.T, kt KeyType, keyPath string, pemEncode bool) {
 	dir, keyFile := filepath.Split(keyPath)
 	err := os.MkdirAll(dir, 0700)
 	if err != nil {
 		t.Fatalf("failed to create target directory: %v", err)
 	}
-	// TODO(fhofherr) this should not depend on the file name but on a passed key type.
-	if strings.HasPrefix(keyFile, "ec") {
-		createOpenSSLECPrivateKey(t, dir, keyFile)
-	} else {
-		createOpenSSLRSAPrivateKey(t, dir, keyFile)
+	switch kt {
+	case EC256, EC384:
+		createOpenSSLECPrivateKey(t, kt, dir, keyFile, pemEncode)
+	case RSA2048, RSA4096, RSA8192:
+		createOpenSSLRSAPrivateKey(t, kt, dir, keyFile, pemEncode)
+	default:
+		t.Fatal("unsupported key type")
 	}
 }
 
-func createOpenSSLECPrivateKey(t *testing.T, dir, keyFile string) {
+func createOpenSSLECPrivateKey(t *testing.T, kt KeyType, dir, keyFile string, pemEncode bool) {
 	argv := make([]string, 0, 10)
-	switch {
-	case strings.HasPrefix(keyFile, "ec256"):
+	switch kt {
+	case EC256:
 		argv = append(argv, "ecparam", "-name", "prime256v1", "-genkey", "-noout")
-	case strings.HasPrefix(keyFile, "ec384"):
+	case EC384:
 		argv = append(argv, "ecparam", "-name", "secp384r1", "-genkey", "-noout")
 	default:
-		t.Fatalf("don't know how to create key file: %s/%s", dir, keyFile)
+		t.Fatal("unsupported key type")
 	}
-	if filepath.Ext(keyFile) == ".pem" {
+	if pemEncode {
 		argv = append(argv, "-outform", "pem")
 	} else {
 		argv = append(argv, "-outform", "der")
@@ -48,26 +50,24 @@ func createOpenSSLECPrivateKey(t *testing.T, dir, keyFile string) {
 	openssl(t, argv...)
 }
 
-func createOpenSSLRSAPrivateKey(t *testing.T, dir, keyFile string) {
-	pemOk := true
+func createOpenSSLRSAPrivateKey(t *testing.T, kt KeyType, dir, keyFile string, pemEncode bool) {
 	targetFile := filepath.Join(dir, keyFile)
-	if filepath.Ext(keyFile) != ".pem" {
-		pemOk = false
+	if !pemEncode {
 		targetFile += ".tmp"
 	}
 
 	argv := make([]string, 0, 10)
 	argv = append(argv, "genrsa", "-out", targetFile)
-	switch {
-	case strings.HasPrefix(keyFile, "rsa2048"):
+	switch kt {
+	case RSA2048:
 		argv = append(argv, "2048")
-	case strings.HasPrefix(keyFile, "rsa4096"):
+	case RSA4096:
 		argv = append(argv, "4096")
-	case strings.HasPrefix(keyFile, "rsa8192"):
+	case RSA8192:
 		argv = append(argv, "8192")
 	}
 	openssl(t, argv...)
-	if !pemOk {
+	if !pemEncode {
 		keyPath := filepath.Join(dir, keyFile)
 		openssl(t, "rsa", "-in", targetFile, "-outform", "der", "-out", keyPath)
 		err := os.Remove(targetFile)
@@ -103,9 +103,9 @@ func openssl(t *testing.T, argv ...string) {
 	if err != nil {
 		t.Fatalf("openssl not available: %v", err)
 	}
+
 	cmd := exec.Command(cmdPath, argv...)
-	err = cmd.Run()
-	if err != nil {
-		t.Fatalf("failed to create keys: %v", err)
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("failed: %s %s: %v", cmdPath, strings.Join(argv, " "), err)
 	}
 }
