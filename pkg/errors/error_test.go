@@ -319,3 +319,52 @@ func TestMatch(t *testing.T) {
 		})
 	}
 }
+
+func TestTrace(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      *errors.Error
+		expected []errors.Op
+	}{
+		{
+			name: "nil error",
+		},
+		{
+			name: "error without op",
+			err:  &errors.Error{},
+			expected: []errors.Op{
+				"unknown",
+			},
+		},
+		{
+			name: "error with op",
+			err: &errors.Error{
+				Op: errors.Op("op"),
+			},
+			expected: []errors.Op{
+				errors.Op("op"),
+			},
+		},
+		{
+			name: "error with nested errors",
+			err: &errors.Error{
+				Op: errors.Op("op1"),
+				Err: &errors.Error{
+					Op: errors.Op("op2"),
+				},
+			},
+			expected: []errors.Op{
+				errors.Op("op1"),
+				errors.Op("op2"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			actual := tt.err.Trace()
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}

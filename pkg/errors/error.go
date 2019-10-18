@@ -151,6 +151,30 @@ func (e *Error) Error() string {
 	return sb.String()
 }
 
+// Trace build a trace of operations that lead to the error.
+func (e *Error) Trace() []Op {
+	var (
+		trace []Op
+		cur   *Error = e
+	)
+
+	for cur != nil {
+		trace = appendTrace(trace, cur)
+		if !errors.As(cur.Err, &cur) {
+			break
+		}
+	}
+
+	return trace
+}
+
+func appendTrace(trace []Op, err *Error) []Op {
+	if err.Op == "" {
+		return append(trace, "unknown")
+	}
+	return append(trace, err.Op)
+}
+
 func sep(sb *strings.Builder) {
 	if sb.Len() == 0 {
 		return
