@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,7 +100,6 @@ func TestReadPrivateKeyReaderError(t *testing.T) {
 	r := &errorReader{expectedErr}
 	_, err := certutil.ReadPrivateKey(certutil.EC256, r, false)
 	assert.Error(t, err)
-	assert.Equal(t, expectedErr, errors.Cause(err))
 }
 
 func TestReadPrivateKeyInvalidPEMBlock(t *testing.T) {

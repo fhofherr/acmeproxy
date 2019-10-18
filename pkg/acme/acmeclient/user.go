@@ -2,10 +2,11 @@ package acmeclient
 
 import (
 	"crypto"
+	"fmt"
 
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
-	"github.com/pkg/errors"
 )
 
 // User represents an user of the ACME certificate authority.
@@ -36,6 +37,7 @@ func (u *User) GetPrivateKey() crypto.PrivateKey {
 // and sets u.Registration. Does nothing if u.Registration is already set
 // to some value.
 func (u *User) Register(lc *lego.Client) error {
+	const op errors.Op = "acmeclient/user.Register"
 	var err error
 
 	if u.Registration != nil {
@@ -44,7 +46,7 @@ func (u *User) Register(lc *lego.Client) error {
 	opts := registration.RegisterOptions{TermsOfServiceAgreed: true}
 	u.Registration, err = lc.Registration.Register(opts)
 	if err != nil {
-		return errors.Wrapf(err, "register user: %s", u.Email)
+		return errors.New(op, fmt.Sprintf("user: %s", u.Email), err)
 	}
 	return nil
 }

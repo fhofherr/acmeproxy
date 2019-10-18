@@ -5,10 +5,10 @@ import (
 	"sync"
 
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/golf/log"
 	"github.com/go-acme/lego/certcrypto"
 	legolog "github.com/go-acme/lego/log"
-	"github.com/pkg/errors"
 )
 
 var legoOnce sync.Once
@@ -56,6 +56,8 @@ func (l *loggerAdapter) Printf(format string, args ...interface{}) {
 }
 
 func legoKeyType(kt certutil.KeyType) (certcrypto.KeyType, error) {
+	const op errors.Op = "acmeclient/legoKeyType"
+
 	switch kt {
 	case certutil.EC256:
 		return certcrypto.EC256, nil
@@ -68,6 +70,6 @@ func legoKeyType(kt certutil.KeyType) (certcrypto.KeyType, error) {
 	case certutil.RSA8192:
 		return certcrypto.RSA8192, nil
 	default:
-		return "", errors.Errorf("unsupported key type: %v", kt)
+		return "", errors.New(op, "unsupported key type: %v", kt)
 	}
 }
