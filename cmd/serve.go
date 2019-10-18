@@ -39,8 +39,8 @@ var serveCmd = &cobra.Command{
 Start the acmeproxy server.
 
 The acmeproxy server obtains certificates from an ACME compliant certificate
-authority. Depending on the operation mode requested by the client, it either
-stores the certificates, or directly passes them on to the client. If the
+authority. Depending on the operation mode requested by the user, it either
+stores the certificates, or directly passes them on to the user. If the
 acmeproxy server stores the certificates locally it takes care of renewing
 them before they expire.
 

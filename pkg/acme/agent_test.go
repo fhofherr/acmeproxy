@@ -12,26 +12,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRegisterNewClient(t *testing.T) {
+func TestRegisterNewUser(t *testing.T) {
 	tests := []struct {
-		name     string
-		email    string
-		clientID uuid.UUID
+		name   string
+		email  string
+		userID uuid.UUID
 	}{
 		{
-			name:     "register new client without E-Mail",
-			clientID: uuid.Must(uuid.NewRandom()),
+			name:   "register new user without E-Mail",
+			userID: uuid.Must(uuid.NewRandom()),
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fx := newAgentFixture(t, "www.example.com")
-			err := fx.Agent.RegisterClient(tt.clientID, tt.email)
+			err := fx.Agent.RegisterUser(tt.userID, tt.email)
 			assert.NoError(t, err)
-			client, err := fx.ClientRepository.GetClient(tt.clientID)
+			user, err := fx.UserRepository.GetUser(tt.userID)
 			assert.NoError(t, err)
-			fx.AccountCreator.AssertCreated(t, tt.email, client)
+			fx.AccountCreator.AssertCreated(t, tt.email, user)
 		})
 	}
 }
@@ -40,65 +40,65 @@ func TestRegisterNewDomain(t *testing.T) {
 	domainName := "www.example.com"
 	fx := newAgentFixture(t, domainName)
 
-	clientID := uuid.Must(uuid.NewRandom())
-	err := fx.Agent.RegisterClient(clientID, "")
+	userID := uuid.Must(uuid.NewRandom())
+	err := fx.Agent.RegisterUser(userID, "")
 	assert.NoError(t, err)
 
-	err = fx.Agent.RegisterDomain(clientID, domainName)
+	err = fx.Agent.RegisterDomain(userID, domainName)
 	assert.NoError(t, err)
 
 	domain, err := fx.DomainRepository.GetDomain(domainName)
 	assert.NoError(t, err)
 	assert.Equal(t, domainName, domain.Name)
-	assert.Equal(t, clientID, domain.ClientID)
+	assert.Equal(t, userID, domain.UserID)
 
-	// Re-registering the domain again with the same clientID must not lead
+	// Re-registering the domain again with the same userID must not lead
 	// to an error.
-	err = fx.Agent.RegisterDomain(clientID, domainName)
+	err = fx.Agent.RegisterDomain(userID, domainName)
 	assert.NoError(t, err)
 
 	certBuf := bytes.Buffer{}
-	err = fx.Agent.WriteCertificate(clientID, domainName, &certBuf)
+	err = fx.Agent.WriteCertificate(userID, domainName, &certBuf)
 	assert.NoError(t, err)
 	fx.FakeCA.AssertIssuedCertificate(certBuf.Bytes())
 
 	keyBuf := bytes.Buffer{}
-	err = fx.Agent.WritePrivateKey(clientID, domainName, &keyBuf)
+	err = fx.Agent.WritePrivateKey(userID, domainName, &keyBuf)
 	assert.NoError(t, err)
 	certutil.AssertKeyBelongsToCertificate(t, acme.DefaultKeyType, certBuf.Bytes(), keyBuf.Bytes())
 }
 
-func TestRegisterDomainForUnknownClient(t *testing.T) {
+func TestRegisterDomainForUnknownUser(t *testing.T) {
 	domainName := "www.example.com"
 	fx := newAgentFixture(t, domainName)
 
-	clientID := uuid.Must(uuid.NewRandom())
-	err := fx.Agent.RegisterDomain(clientID, domainName)
+	userID := uuid.Must(uuid.NewRandom())
+	err := fx.Agent.RegisterDomain(userID, domainName)
 	assert.Error(t, err)
 }
 
-func TestRegisterSameDomainForDifferentClients(t *testing.T) {
+func TestRegisterSameDomainForDifferentUsers(t *testing.T) {
 	domain := "www.example.org"
 	fx := newAgentFixture(t, domain)
 
-	clientID1 := uuid.Must(uuid.NewRandom())
-	err := fx.Agent.RegisterClient(clientID1, "")
+	userID1 := uuid.Must(uuid.NewRandom())
+	err := fx.Agent.RegisterUser(userID1, "")
 	assert.NoError(t, err)
 
-	clientID2 := uuid.Must(uuid.NewRandom())
-	err = fx.Agent.RegisterClient(clientID2, "")
+	userID2 := uuid.Must(uuid.NewRandom())
+	err = fx.Agent.RegisterUser(userID2, "")
 	assert.NoError(t, err)
 
-	err = fx.Agent.RegisterDomain(clientID1, domain)
+	err = fx.Agent.RegisterDomain(userID1, domain)
 	assert.NoError(t, err)
 
-	err = fx.Agent.RegisterDomain(clientID2, domain)
+	err = fx.Agent.RegisterDomain(userID2, domain)
 	assert.Error(t, err)
 }
 
 type agentFixture struct {
 	FakeCA           *acme.FileBasedCertificateObtainer
-	ClientRepository *acme.InMemoryClientRepository
+	UserRepository   *acme.InMemoryUserRepository
 	DomainRepository *acme.InMemoryDomainRepository
 	AccountCreator   *acme.InMemoryAccountCreator
 	Agent            *acme.Agent
@@ -116,18 +116,18 @@ func newAgentFixture(t *testing.T, commonName string) agentFixture {
 		KeyFile:  keyFile,
 		T:        t,
 	}
-	clientRepository := &acme.InMemoryClientRepository{}
+	userRepository := &acme.InMemoryUserRepository{}
 	domainRepository := &acme.InMemoryDomainRepository{}
 	accountCreator := &acme.InMemoryAccountCreator{}
 	agent := &acme.Agent{
 		Domains:      domainRepository,
-		Clients:      clientRepository,
+		Users:        userRepository,
 		Certificates: fakeCA,
 		ACMEAccounts: accountCreator,
 	}
 	return agentFixture{
 		FakeCA:           fakeCA,
-		ClientRepository: clientRepository,
+		UserRepository:   userRepository,
 		DomainRepository: domainRepository,
 		AccountCreator:   accountCreator,
 		Agent:            agent,

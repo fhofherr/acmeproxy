@@ -18,7 +18,7 @@ import (
 // Server is acmeproxy's public server.
 //
 // Server runs the ACME Agent responsible of obtaining certificates and storing
-// them for later retrieval. Clients connect to the server through its public
+// them for later retrieval. Users connect to the server through its public
 // API to retrieve their certificates.
 //
 // The zero value of Server represents a valid instance. Server may start
@@ -98,7 +98,7 @@ func (s *Server) initialize() {
 	}
 	s.acmeAgent = &acme.Agent{
 		Domains:      s.boltDB.DomainRepository(),
-		Clients:      s.boltDB.ClientRepository(),
+		Users:        s.boltDB.UserRepository(),
 		Certificates: acmeClient,
 		ACMEAccounts: acmeClient,
 	}
@@ -113,11 +113,11 @@ func (s *Server) initialize() {
 func (s *Server) registerAcmeproxyDomain() error {
 	const op errors.Op = "server/server.registerAcmeproxyDomain"
 
-	tmpClientID := uuid.Must(uuid.NewRandom())
-	if err := s.acmeAgent.RegisterClient(tmpClientID, ""); err != nil {
-		return errors.New(op, "register default client", err)
+	tmpUserID := uuid.Must(uuid.NewRandom())
+	if err := s.acmeAgent.RegisterUser(tmpUserID, ""); err != nil {
+		return errors.New(op, "register default user", err)
 	}
-	if err := s.acmeAgent.RegisterDomain(tmpClientID, "www.example.com"); err != nil {
+	if err := s.acmeAgent.RegisterDomain(tmpUserID, "www.example.com"); err != nil {
 		return errors.New(op, fmt.Sprintf("register acmeproxy domain: %s", "www.example.com"), err)
 	}
 	return nil

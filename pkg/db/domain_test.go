@@ -30,13 +30,13 @@ func TestSaveNewDomain(t *testing.T) {
 	certBytes := readFile(t, certFile)
 	keyBytes := readFile(t, keyFile)
 	domain := acme.Domain{
-		ClientID:    uuid.Must(uuid.NewRandom()),
+		UserID:      uuid.Must(uuid.NewRandom()),
 		Name:        domainName,
 		Certificate: certBytes,
 		PrivateKey:  keyBytes,
 	}
 	actual, err := domainRepository.UpdateDomain(domainName, func(d *acme.Domain) error {
-		d.ClientID = domain.ClientID
+		d.UserID = domain.UserID
 		d.Name = domain.Name
 		d.Certificate = domain.Certificate
 		d.PrivateKey = domain.PrivateKey
@@ -68,7 +68,7 @@ func TestUpdateDomain(t *testing.T) {
 
 	newDomain, err := domainRepository.UpdateDomain(domainName, func(d *acme.Domain) error {
 		d.Name = domainName
-		d.ClientID = uuid.Must(uuid.NewRandom())
+		d.UserID = uuid.Must(uuid.NewRandom())
 		d.Certificate = readFile(t, initialCertFile)
 		d.PrivateKey = readFile(t, initialKeyFile)
 		return nil
@@ -86,7 +86,7 @@ func TestUpdateDomain(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, domainName, updatedDomain.Name)
-	assert.Equal(t, newDomain.ClientID, updatedDomain.ClientID)
+	assert.Equal(t, newDomain.UserID, updatedDomain.UserID)
 	assert.Equal(t, updatedCertificate, updatedDomain.Certificate)
 	assert.Equal(t, updatedKey, updatedDomain.PrivateKey)
 	assert.NotEqual(t, newDomain.Certificate, updatedDomain.Certificate)

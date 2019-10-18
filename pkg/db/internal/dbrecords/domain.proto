@@ -2,7 +2,7 @@ syntax = "proto3";
 package dbrecords;
 
 message Domain {
-    bytes clientID = 1;
+    bytes userID = 1;
     string name = 2;
     bytes certificatePEM = 3;
     bytes privateKeyPEM = 4;

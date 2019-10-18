@@ -3,7 +3,7 @@ package dbrecords
 import (
 	"crypto"
 	"crypto/x509"
-	fmt "fmt"
+	"fmt"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
@@ -32,8 +32,8 @@ func (u *BinaryUnmarshaller) UnmarshalBinary(bs []byte) error {
 	const op errors.Op = "dbrecords/binaryUnmarshaller.UnmarshalBinary"
 
 	switch obj := u.V.(type) {
-	case *acme.Client:
-		u.unmarshalACMEClient(bs, obj)
+	case *acme.User:
+		u.unmarshalACMEUser(bs, obj)
 	case *acme.Domain:
 		u.unmarshalACMEDomain(bs, obj)
 	case *uuid.UUID:
@@ -61,23 +61,23 @@ func (u *BinaryUnmarshaller) unmarshalUUID(bs []byte, id *uuid.UUID) {
 	})
 }
 
-func (u *BinaryUnmarshaller) unmarshalACMEClient(bs []byte, client *acme.Client) {
-	const op errors.Op = "dbrecords/binaryUnmarshaller.unmarshalACMEClient"
+func (u *BinaryUnmarshaller) unmarshalACMEUser(bs []byte, user *acme.User) {
+	const op errors.Op = "dbrecords/binaryUnmarshaller.unmarshalACMEUser"
 
 	u.do(func() error {
-		if client == nil {
-			return errors.New(op, "client must not be nil")
+		if user == nil {
+			return errors.New(op, "user must not be nil")
 		}
 		var (
-			rec Client
+			rec User
 			id  uuid.UUID
 		)
 		u.unmarshalPB(bs, &rec)
 		u.unmarshalUUID(rec.Id, &id)
 		key := u.unmarshalPrivateKey(keyType(rec.AccountKey.KeyType), rec.AccountKey.KeyBytes)
-		client.AccountURL = rec.AccountURL
-		client.ID = id
-		client.Key = key
+		user.AccountURL = rec.AccountURL
+		user.ID = id
+		user.Key = key
 		return nil
 	})
 }
@@ -116,12 +116,12 @@ func (u *BinaryUnmarshaller) unmarshalACMEDomain(bs []byte, domain *acme.Domain)
 			return errors.New(op, "domain must not be nil")
 		}
 		var (
-			rec      Domain
-			clientID uuid.UUID
+			rec    Domain
+			userID uuid.UUID
 		)
 		u.unmarshalPB(bs, &rec)
-		u.unmarshalUUID(rec.ClientID, &clientID)
-		domain.ClientID = clientID
+		u.unmarshalUUID(rec.UserID, &userID)
+		domain.UserID = userID
 		domain.Name = rec.Name
 		domain.Certificate = rec.CertificatePEM
 		domain.PrivateKey = rec.PrivateKeyPEM

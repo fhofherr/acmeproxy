@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSaveNewClient(t *testing.T) {
+func TestSaveNewUser(t *testing.T) {
 	keyFile := filepath.Join("testdata", t.Name(), "private_key.pem")
 	if *testsupport.FlagUpdate {
 		certutil.WritePrivateKeyForTesting(t, keyFile, certutil.EC256, true)
@@ -21,13 +21,13 @@ func TestSaveNewClient(t *testing.T) {
 	fx := db.NewTestFixture(t)
 	defer fx.Close()
 
-	expected := acme.Client{
+	expected := acme.User{
 		ID:         uuid.Must(uuid.NewRandom()),
 		Key:        certutil.KeyMust(certutil.ReadPrivateKeyFromFile(certutil.EC256, keyFile, true)),
 		AccountURL: "https://example.com/some/account",
 	}
-	clientRepository := fx.DB.ClientRepository()
-	actual, err := clientRepository.UpdateClient(expected.ID, func(c *acme.Client) error {
+	userRepository := fx.DB.UserRepository()
+	actual, err := userRepository.UpdateUser(expected.ID, func(c *acme.User) error {
 		c.ID = expected.ID
 		c.Key = expected.Key
 		c.AccountURL = expected.AccountURL
@@ -36,16 +36,16 @@ func TestSaveNewClient(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expected, actual)
 
-	saved, err := clientRepository.GetClient(expected.ID)
+	saved, err := userRepository.GetUser(expected.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, actual)
 	assert.Equal(t, expected, saved)
 }
 
-func TestGetClient(t *testing.T) {
+func TestGetUser(t *testing.T) {
 	type test struct {
 		name         string
-		clientID     uuid.UUID
+		userID       uuid.UUID
 		keyFile      string
 		prepare      func(*testing.T, test, *db.TestFixture)
 		expectedKind errors.Kind
@@ -53,19 +53,19 @@ func TestGetClient(t *testing.T) {
 	var tests = []test{
 		{
 			name:         "empty repository",
-			clientID:     uuid.Must(uuid.NewRandom()),
+			userID:       uuid.Must(uuid.NewRandom()),
 			expectedKind: errors.NotFound,
 		},
 		{
-			name:     "missing client",
-			clientID: uuid.Must(uuid.NewRandom()),
-			keyFile:  filepath.Join("testdata", t.Name(), "private_key.pem"),
+			name:    "missing user",
+			userID:  uuid.Must(uuid.NewRandom()),
+			keyFile: "private_key.pem",
 			prepare: func(t *testing.T, tt test, fx *db.TestFixture) {
 				key := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(certutil.EC256, tt.keyFile, true))
-				otherClientID := uuid.Must(uuid.NewRandom())
-				repo := fx.DB.ClientRepository()
-				_, err := repo.UpdateClient(otherClientID, func(c *acme.Client) error {
-					c.ID = otherClientID
+				otherUserID := uuid.Must(uuid.NewRandom())
+				repo := fx.DB.UserRepository()
+				_, err := repo.UpdateUser(otherUserID, func(c *acme.User) error {
+					c.ID = otherUserID
 					c.Key = key
 					return nil
 				})
@@ -90,8 +90,8 @@ func TestGetClient(t *testing.T) {
 			if tt.prepare != nil {
 				tt.prepare(t, tt, fx)
 			}
-			repo := fx.DB.ClientRepository()
-			_, err := repo.GetClient(tt.clientID)
+			repo := fx.DB.UserRepository()
+			_, err := repo.GetUser(tt.userID)
 			if err != nil {
 				assert.Truef(t, errors.IsKind(err, tt.expectedKind),
 					"expected error kind %v, got %v", tt.expectedKind, errors.GetKind(err))
@@ -102,34 +102,34 @@ func TestGetClient(t *testing.T) {
 	}
 }
 
-func TestUpdateClient(t *testing.T) {
+func TestUpdateUser(t *testing.T) {
 	type updateTest struct {
 		name       string
-		clientID   uuid.UUID
-		updatef    func(*acme.Client) error
-		assertions func(*testing.T, updateTest, *acme.Client, error)
+		userID     uuid.UUID
+		updatef    func(*acme.User) error
+		assertions func(*testing.T, updateTest, *acme.User, error)
 	}
 	tests := []updateTest{
 		{
-			name:     "successfully update client",
-			clientID: uuid.Must(uuid.NewRandom()),
-			updatef: func(c *acme.Client) error {
+			name:   "successfully update user",
+			userID: uuid.Must(uuid.NewRandom()),
+			updatef: func(c *acme.User) error {
 				c.AccountURL = "https://example.com/smoe/changed-account"
 				return nil
 			},
-			assertions: func(t *testing.T, tt updateTest, actual *acme.Client, err error) {
+			assertions: func(t *testing.T, tt updateTest, actual *acme.User, err error) {
 				assert.NoError(t, err)
 				assert.Equal(t, "https://example.com/smoe/changed-account", actual.AccountURL)
-				assert.Equal(t, tt.clientID, actual.ID)
+				assert.Equal(t, tt.userID, actual.ID)
 			},
 		},
 		{
-			name:     "update function returns error",
-			clientID: uuid.Must(uuid.NewRandom()),
-			updatef: func(*acme.Client) error {
+			name:   "update function returns error",
+			userID: uuid.Must(uuid.NewRandom()),
+			updatef: func(*acme.User) error {
 				return errors.New("update function failed")
 			},
-			assertions: func(t *testing.T, tt updateTest, _ *acme.Client, err error) {
+			assertions: func(t *testing.T, tt updateTest, _ *acme.User, err error) {
 				cause := errors.New("update function failed")
 				assert.Truef(t, errors.HasCause(err, cause), "expected %v to have cause %v", err, cause)
 			},
@@ -144,18 +144,18 @@ func TestUpdateClient(t *testing.T) {
 			}
 			fx := db.NewTestFixture(t)
 			defer fx.Close()
-			clientRepository := fx.DB.ClientRepository()
+			userRepository := fx.DB.UserRepository()
 
 			key := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(certutil.EC256, initialKeyFile, true))
-			_, err := clientRepository.UpdateClient(tt.clientID, func(c *acme.Client) error {
-				c.ID = tt.clientID
+			_, err := userRepository.UpdateUser(tt.userID, func(c *acme.User) error {
+				c.ID = tt.userID
 				c.Key = key
 				c.AccountURL = "https://example.com/some/new-account"
 				return nil
 			})
 			assert.NoError(t, err)
 
-			actual, err := clientRepository.UpdateClient(tt.clientID, tt.updatef)
+			actual, err := userRepository.UpdateUser(tt.userID, tt.updatef)
 			tt.assertions(t, tt, &actual, err)
 		})
 	}

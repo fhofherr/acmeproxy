@@ -34,10 +34,10 @@ func (m *BinaryMarshaller) MarshalBinary() ([]byte, error) {
 	var bs []byte
 
 	switch obj := m.V.(type) {
-	case *acme.Client:
-		bs = m.marshalACMEClient(obj)
-	case acme.Client:
-		bs = m.marshalACMEClient(&obj)
+	case *acme.User:
+		bs = m.marshalACMEUser(obj)
+	case acme.User:
+		bs = m.marshalACMEUser(&obj)
 	case *acme.Domain:
 		bs = m.marshalACMEDomain(obj)
 	case acme.Domain:
@@ -73,13 +73,13 @@ func (m *BinaryMarshaller) marshalUUID(id uuid.UUID) []byte {
 	return bs
 }
 
-func (m *BinaryMarshaller) marshalACMEClient(client *acme.Client) []byte {
-	idBytes := m.marshalUUID(client.ID)
-	kt, keyBytes := m.marshalPrivateKey(client.Key)
-	rec := Client{
+func (m *BinaryMarshaller) marshalACMEUser(user *acme.User) []byte {
+	idBytes := m.marshalUUID(user.ID)
+	kt, keyBytes := m.marshalPrivateKey(user.Key)
+	rec := User{
 		Id:         idBytes,
-		AccountURL: client.AccountURL,
-		AccountKey: &Client_AccountKey{
+		AccountURL: user.AccountURL,
+		AccountKey: &User_AccountKey{
 			KeyType:  uint32(kt),
 			KeyBytes: keyBytes,
 		},
@@ -115,9 +115,9 @@ func (m *BinaryMarshaller) marshalPrivateKey(privateKey crypto.PrivateKey) (keyT
 }
 
 func (m *BinaryMarshaller) marshalACMEDomain(d *acme.Domain) []byte {
-	idBytes := m.marshalUUID(d.ClientID)
+	idBytes := m.marshalUUID(d.UserID)
 	rec := Domain{
-		ClientID:       idBytes,
+		UserID:         idBytes,
 		Name:           d.Name,
 		CertificatePEM: d.Certificate,
 		PrivateKeyPEM:  d.PrivateKey,
