@@ -2,12 +2,13 @@ package acmeclient
 
 import (
 	"crypto"
+	"fmt"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/go-acme/lego/certificate"
 	"github.com/go-acme/lego/lego"
 	"github.com/go-acme/lego/registration"
-	"github.com/pkg/errors"
 )
 
 // Client is an ACME protocol client capable of obtaining and renewing
@@ -21,6 +22,8 @@ type Client struct {
 //
 // If email is not empty it is used as the contact address for the new account.
 func (c *Client) CreateAccount(accountKey crypto.PrivateKey, email string) (string, error) {
+	const op errors.Op = "acmeclient/client.CreateAccount"
+
 	user := &User{
 		Email:      email,
 		PrivateKey: accountKey,
@@ -29,27 +32,31 @@ func (c *Client) CreateAccount(accountKey crypto.PrivateKey, email string) (stri
 	cfg.CADirURL = c.DirectoryURL
 	legoClient, err := lego.NewClient(cfg)
 	if err != nil {
-		return "", errors.Wrap(err, "create client for new ACME account")
+		return "", errors.New(op, "create client for new ACME account", err)
 	}
 	err = user.Register(legoClient)
 	if err != nil {
-		return "", errors.Wrap(err, "register new ACME account")
+		return "", errors.New(op, "register new ACME account", err)
 	}
 	return user.Registration.URI, nil
 }
 
 // ObtainCertificate obtains a new certificate from the remote ACME server.
 func (c *Client) ObtainCertificate(req acme.CertificateRequest) (*acme.CertificateInfo, error) {
-	// TODO err if len(req.Domains) < 1
+	const op errors.Op = "acmeclient/client.ObtainCertificate"
+
+	if len(req.Domains) < 1 {
+		return nil, errors.New(op, errors.InvalidArgument, "no domains")
+	}
 	keyType, err := legoKeyType(req.KeyType)
 	if err != nil {
-		return nil, errors.Wrap(err, "determine lego key type")
+		return nil, errors.New(op, "determine lego key type", err)
 	}
 	if req.AccountURL == "" {
 		var err error
 		req.AccountURL, err = c.CreateAccount(req.AccountKey, req.Email)
 		if err != nil {
-			return nil, errors.Wrap(err, "create ad-hoc account")
+			return nil, errors.New(op, "create ad-hoc account", err)
 		}
 	}
 	user := &User{
@@ -62,11 +69,11 @@ func (c *Client) ObtainCertificate(req acme.CertificateRequest) (*acme.Certifica
 	cfg.Certificate.KeyType = keyType
 	legoClient, err := lego.NewClient(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "create lego client")
+		return nil, errors.New(op, "create lego client", err)
 	}
 	err = legoClient.Challenge.SetHTTP01Provider(&c.HTTP01Solver)
 	if err != nil {
-		return nil, errors.Wrap(err, "set challenge provider")
+		return nil, errors.New(op, "set challenge provider", err)
 	}
 	obtReq := certificate.ObtainRequest{
 		Domains: req.Domains,
@@ -74,7 +81,7 @@ func (c *Client) ObtainCertificate(req acme.CertificateRequest) (*acme.Certifica
 	}
 	certs, err := legoClient.Certificate.Obtain(obtReq)
 	if err != nil {
-		return nil, errors.Wrapf(err, "obtain certificates %s", req.Domains[0])
+		return nil, errors.New(op, fmt.Sprintf("obtain certificates %s", req.Domains[0]), err)
 	}
 	return &acme.CertificateInfo{
 		URL:               certs.CertURL,

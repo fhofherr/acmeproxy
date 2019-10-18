@@ -8,6 +8,7 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,8 +54,18 @@ func TestObtainCertificate(t *testing.T) {
 
 	tests := []struct {
 		acme.CertificateRequest
-		name string
+		name    string
+		errTmpl error
 	}{
+		{
+			name: "must provide at least one domain",
+			CertificateRequest: acme.CertificateRequest{
+				Email:      "john.doe+no.domain@example.com",
+				Bundle:     true,
+				AccountKey: certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256)),
+			},
+			errTmpl: errors.New(errors.InvalidArgument),
+		},
 		{
 			name: "obtain certificate without account",
 			CertificateRequest: acme.CertificateRequest{
@@ -110,7 +121,13 @@ func TestObtainCertificate(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			certInfo, err := fx.Client.ObtainCertificate(tt.CertificateRequest)
-			if !assert.NoError(t, err) {
+			if err != nil {
+				if tt.errTmpl == nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if !errors.Match(tt.errTmpl, err) {
+					t.Fatalf("Expected error matching %v; got: %v", tt.errTmpl, err)
+				}
 				return
 			}
 			assert.NotEmpty(t, certInfo.URL)

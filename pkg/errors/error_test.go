@@ -15,6 +15,7 @@ func TestKindToString(t *testing.T) {
 	}{
 		{errors.Unspecified, ""},
 		{errors.NotFound, "not found"},
+		{errors.InvalidArgument, "invalid argument"},
 		{errors.Kind(-1), "unknown kind"},
 	}
 	for _, tt := range tests {
