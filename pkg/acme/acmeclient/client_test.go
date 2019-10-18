@@ -1,6 +1,7 @@
 package acmeclient_test
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -26,8 +27,11 @@ func TestCreateAccount(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO(fhofherr) read from golden file instead
-			accountKey := certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256))
+			keyFile := filepath.Join("testdata", t.Name(), "key.pem")
+			if *testsupport.FlagUpdate {
+				certutil.WritePrivateKeyForTesting(t, keyFile, certutil.EC256, true)
+			}
+			accountKey := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(certutil.EC256, keyFile, true))
 			accountURL, err := fx.Client.CreateAccount(accountKey, tt.email)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, accountURL)
