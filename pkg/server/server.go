@@ -89,6 +89,7 @@ func (s *Server) initialize() {
 		FilePath: filepath.Join(s.DataDir, "acmeproxy.db"),
 		FileMode: 0600,
 	}
+	acmeclient.InitializeLego(s.Logger)
 	acmeClient := &acmeclient.Client{
 		DirectoryURL: s.ACMEDirectoryURL,
 	}
