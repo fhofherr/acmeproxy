@@ -8,9 +8,10 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/server"
-	"github.com/fhofherr/golf/log"
+	"github.com/fhofherr/golf-zap/golfzap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const (
@@ -50,15 +51,20 @@ environment variable corresponds to the flag name prefixed with 'ACMEPROXY_' and
 all hyphens replaced underscores. For example the name of the environment
 variable matching the flag '--http-api-addr' would be 'ACMEPROXY_HTTP_API_ADDR'.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO (fhofherr) configure Logger
-		var logger log.Logger
+		zapLogger, err := zap.NewProduction()
+		if err != nil {
+			printErrorAndExit(1, err)
+		}
+		defer zapLogger.Sync() //nolint: errcheck
+
+		logger := golfzap.New(zapLogger)
 
 		s := &server.Server{
 			ACMEDirectoryURL: viper.GetString(flagACMEDirectoryURLName),
 			HTTPAPIAddr:      viper.GetString(flagHTTPAPIAddrName),
 			Logger:           logger,
 		}
-		err := s.Start()
+		err = s.Start()
 		if err != nil {
 			fmt.Printf("%+v", err)
 			os.Exit(1)
