@@ -2,12 +2,13 @@ package acme
 
 import (
 	"crypto"
+	"fmt"
 	"io"
 
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/go-acme/lego/lego"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 // DefaultDirectoryURL points to Let's Encrypt's production directory.
@@ -79,18 +80,20 @@ type Agent struct {
 // RegisterUser does nothing if the user has already been registered with
 // the Agent.
 func (a *Agent) RegisterUser(userID uuid.UUID, email string) error {
+	const op errors.Op = "acme/agent.RegisterUser"
+
 	_, err := a.Users.UpdateUser(userID, func(c *User) error {
 		if !c.IsZero() {
 			return nil
 		}
 		key, err := certutil.NewPrivateKey(certutil.EC256)
 		if err != nil {
-			return errors.Wrapf(err, "new private key for user: %v", userID)
+			return errors.New(op, fmt.Sprintf("new private key for user: %v", userID), err)
 		}
 
 		url, err := a.ACMEAccounts.CreateAccount(key, email)
 		if err != nil {
-			return errors.Wrapf(err, "register account for user: %v", userID)
+			return errors.New(op, fmt.Sprintf("register account for user: %v", userID), err)
 		}
 		c.ID = userID
 		c.Key = key
@@ -98,7 +101,7 @@ func (a *Agent) RegisterUser(userID uuid.UUID, email string) error {
 
 		return nil
 	})
-	return errors.Wrapf(err, "register user")
+	return errors.Wrap(err, op)
 }
 
 // RegisterDomain registers a new domain for the user uniquely identified by
@@ -111,14 +114,16 @@ func (a *Agent) RegisterUser(userID uuid.UUID, email string) error {
 // with the same userID. It will return an error if the domain is already
 // registered with a different userID.
 func (a *Agent) RegisterDomain(userID uuid.UUID, domainName string) error {
+	const op errors.Op = "acme/agent.RegisterDomain"
+
 	user, err := a.Users.GetUser(userID)
 	if err != nil {
-		return errors.Wrapf(err, "get user: %v", userID)
+		return errors.New(op, fmt.Sprintf("get user: %v", userID), err)
 	}
 	_, err = a.Domains.UpdateDomain(domainName, func(d *Domain) error {
 		if !d.IsZero() {
 			if userID != d.UserID {
-				return errors.Errorf("domain already registered: %s", domainName)
+				return errors.New(op, fmt.Sprintf("already registered: %s", domainName))
 			}
 			return nil
 		}
@@ -132,7 +137,7 @@ func (a *Agent) RegisterDomain(userID uuid.UUID, domainName string) error {
 		}
 		ci, err := a.Certificates.ObtainCertificate(req)
 		if err != nil {
-			return errors.Wrapf(err, "obtain certificate for domain: %s", domainName)
+			return errors.New(op, fmt.Sprintf("obtain certificate for domain: %s", domainName), err)
 		}
 		d.Name = domainName
 		d.UserID = userID
@@ -140,10 +145,7 @@ func (a *Agent) RegisterDomain(userID uuid.UUID, domainName string) error {
 		d.PrivateKey = ci.PrivateKey
 		return nil
 	})
-	if err != nil {
-		return errors.Wrapf(err, "update domain: %s", domainName)
-	}
-	return nil
+	return errors.Wrap(err, op, fmt.Sprintf("update domain: %s", domainName))
 }
 
 // WriteCertificate writes the PEM encoded certificate for the domain to w.
@@ -152,12 +154,14 @@ func (a *Agent) RegisterDomain(userID uuid.UUID, domainName string) error {
 // registered to a different userID. If the Agent has not yet obtained a
 // certificate WriteCertificate returns an instance of RetryLater as error.
 func (a *Agent) WriteCertificate(userID uuid.UUID, domainName string, w io.Writer) error {
+	const op errors.Op = "acme/agent.WriteCertificate"
+
 	domain, err := a.Domains.GetDomain(domainName)
 	if err != nil {
-		return errors.Wrapf(err, "get domain: %s", domainName)
+		return errors.New(op, fmt.Sprintf("get domain: %s", domainName), err)
 	}
 	_, err = w.Write(domain.Certificate)
-	return errors.Wrapf(err, "write certificate for domain: %s", domainName)
+	return errors.Wrap(err, op, fmt.Sprintf("write certificate for domain: %s", domainName))
 }
 
 // WritePrivateKey writes the PEM encoded private key for the domain to w.
@@ -166,10 +170,12 @@ func (a *Agent) WriteCertificate(userID uuid.UUID, domainName string, w io.Write
 // registered to a different userID. If the Agent has not yet obtained a
 // certificate WritePrivateKey returns an instance of RetryLater as error.
 func (a *Agent) WritePrivateKey(userID uuid.UUID, domainName string, w io.Writer) error {
+	const op errors.Op = "acme/agent.WritePrivateKey"
+
 	domain, err := a.Domains.GetDomain(domainName)
 	if err != nil {
-		return errors.Wrapf(err, "get domain: %s", domainName)
+		return errors.New(op, fmt.Sprintf("get domain: %s", domainName), err)
 	}
 	_, err = w.Write(domain.PrivateKey)
-	return errors.Wrapf(err, "write private key for domain: %s", domainName)
+	return errors.Wrap(err, op, fmt.Sprintf("write private key for domain: %s", domainName))
 }
