@@ -8,13 +8,14 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/fhofherr/acmeproxy/pkg/db"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSaveNewClient(t *testing.T) {
 	keyFile := filepath.Join("testdata", t.Name(), "private_key.pem")
-	if *db.FlagUpdate {
+	if *testsupport.FlagUpdate {
 		certutil.WritePrivateKeyForTesting(t, keyFile, certutil.EC256, true)
 	}
 	fx := db.NewTestFixture(t)
@@ -80,7 +81,7 @@ func TestGetClient(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.keyFile != "" {
 				tt.keyFile = filepath.Join("testdata", t.Name(), tt.keyFile)
-				if *db.FlagUpdate {
+				if *testsupport.FlagUpdate {
 					certutil.WritePrivateKeyForTesting(t, tt.keyFile, certutil.EC256, true)
 				}
 			}
@@ -138,7 +139,7 @@ func TestUpdateClient(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			initialKeyFile := filepath.Join("testdata", t.Name(), "private_key.pem")
-			if *db.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				certutil.WritePrivateKeyForTesting(t, initialKeyFile, certutil.EC256, true)
 			}
 			fx := db.NewTestFixture(t)

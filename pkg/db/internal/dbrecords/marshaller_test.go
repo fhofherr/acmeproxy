@@ -8,6 +8,7 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/fhofherr/acmeproxy/pkg/db/internal/dbrecords"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -103,7 +104,7 @@ func TestMarshalAndUnmarshalClients(t *testing.T) {
 			var source interface{}
 
 			keyFile := filepath.Join("testdata", t.Name(), tt.keyFile)
-			if *dbrecords.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				certutil.WritePrivateKeyForTesting(t, keyFile, tt.keyType, true)
 			}
 
@@ -155,7 +156,7 @@ func TestMarshalAndUnmarshalDomain(t *testing.T) {
 			domainName := "example.com"
 			keyFile := filepath.Join("testdata", t.Name(), "key.pem")
 			certFile := filepath.Join("testdata", t.Name(), "certificate.pem")
-			if *dbrecords.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				pk := certutil.WritePrivateKeyForTesting(t, keyFile, certutil.RSA2048, true)
 				certutil.WriteCertificateForTesting(t, certFile, domainName, pk, true)
 			}

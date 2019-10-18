@@ -9,6 +9,7 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/fhofherr/acmeproxy/pkg/db"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func TestSaveNewDomain(t *testing.T) {
 	domainName := "example.com"
 	certFile := filepath.Join("testdata", t.Name(), "certificate.pem")
 	keyFile := filepath.Join("testdata", t.Name(), "private_key.pem")
-	if *db.FlagUpdate {
+	if *testsupport.FlagUpdate {
 		pk := certutil.WritePrivateKeyForTesting(t, keyFile, certutil.EC256, true)
 		certutil.WriteCertificateForTesting(t, certFile, domainName, pk, true)
 	}
@@ -54,7 +55,7 @@ func TestUpdateDomain(t *testing.T) {
 	updatedCertFile := filepath.Join("testdata", t.Name(), "updated_certificate.pem")
 	initialKeyFile := filepath.Join("testdata", t.Name(), "initial_private_key.pem")
 	updatedKeyFile := filepath.Join("testdata", t.Name(), "updated_private_key.pem")
-	if *db.FlagUpdate {
+	if *testsupport.FlagUpdate {
 		pk := certutil.WritePrivateKeyForTesting(t, initialKeyFile, certutil.EC256, true)
 		certutil.WriteCertificateForTesting(t, initialCertFile, domainName, pk, true)
 		pk = certutil.WritePrivateKeyForTesting(t, updatedKeyFile, certutil.EC256, true)

@@ -1,4 +1,4 @@
-package certutil
+package testsupport
 
 import "flag"
 

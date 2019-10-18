@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -74,7 +75,7 @@ func TestReadPrivateKey(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			keyPath := filepath.Join("testdata", t.Name())
-			if *certutil.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				certutil.CreateOpenSSLPrivateKey(t, keyPath)
 			}
 			r, err := os.Open(keyPath)
@@ -113,7 +114,7 @@ func TestReadConcatenatedPEMBlocks(t *testing.T) {
 		filepath.Join("testdata", t.Name(), "ec256_1.pem"),
 		filepath.Join("testdata", t.Name(), "ec256_2.pem"),
 	}
-	if *certutil.FlagUpdate {
+	if *testsupport.FlagUpdate {
 		for _, path := range certFiles {
 			certutil.CreateOpenSSLPrivateKey(t, path)
 		}
@@ -156,7 +157,7 @@ func TestWritePrivateKey(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			srcKeyPath := filepath.Join("testdata", t.Name())
-			if *certutil.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				certutil.CreateOpenSSLPrivateKey(t, srcKeyPath)
 			}
 			pk := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(tt.keyType, srcKeyPath, tt.pemEncode))

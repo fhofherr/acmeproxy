@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +35,7 @@ func TestReadCertificate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			commonName := "example.com"
 			certFile := filepath.Join("testdata", t.Name(), tt.certFile)
-			if *certutil.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				keyFile := filepath.Join("testdata", t.Name(), tt.keyFile)
 				certutil.CreateOpenSSLPrivateKey(t, keyFile)
 				certutil.CreateOpenSSLSelfSignedCertificate(t, commonName, keyFile, certFile, tt.pemEncode)
@@ -73,7 +74,7 @@ func TestWriteCertificate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			commonName := "example.com"
 			certFile := filepath.Join("testdata", t.Name(), tt.certFile)
-			if *certutil.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				keyFile := filepath.Join("testdata", t.Name(), tt.keyFile)
 				certutil.CreateOpenSSLPrivateKey(t, keyFile)
 				certutil.CreateOpenSSLSelfSignedCertificate(t, commonName, keyFile, certFile, tt.pemEncode)

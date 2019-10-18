@@ -7,6 +7,7 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -106,7 +107,7 @@ type agentFixture struct {
 func newAgentFixture(t *testing.T, commonName string) agentFixture {
 	keyFile := filepath.Join("testdata", t.Name(), "rsa2048.pem")
 	certFile := filepath.Join("testdata", t.Name(), "certificate.pem")
-	if *acme.FlagUpdate {
+	if *testsupport.FlagUpdate {
 		certutil.CreateOpenSSLPrivateKey(t, keyFile)
 		certutil.CreateOpenSSLSelfSignedCertificate(t, commonName, keyFile, certFile, true)
 	}
