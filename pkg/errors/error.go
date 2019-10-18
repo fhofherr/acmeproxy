@@ -27,6 +27,11 @@ const (
 	// be found. Callers may choose to continue with a fallback for the thing
 	// that could not be found, or abort the operation.
 	NotFound
+
+	// InvalidArgument shows that an opperation was called with one or more
+	// invalid arguments. This usually indicates a client error. An HTTP API
+	// might return a status 400 Bad Request response.
+	InvalidArgument
 )
 
 func (k Kind) String() string {
@@ -35,6 +40,8 @@ func (k Kind) String() string {
 		return ""
 	case NotFound:
 		return "not found"
+	case InvalidArgument:
+		return "invalid argument"
 	default:
 		return "unknown kind"
 	}
@@ -142,6 +149,30 @@ func (e *Error) Error() string {
 		sb.WriteString(e.Err.Error())
 	}
 	return sb.String()
+}
+
+// Trace build a trace of operations that lead to the error.
+func (e *Error) Trace() []Op {
+	var (
+		trace []Op
+		cur   *Error = e
+	)
+
+	for cur != nil {
+		trace = appendTrace(trace, cur)
+		if !errors.As(cur.Err, &cur) {
+			break
+		}
+	}
+
+	return trace
+}
+
+func appendTrace(trace []Op, err *Error) []Op {
+	if err.Op == "" {
+		return append(trace, "unknown")
+	}
+	return append(trace, err.Op)
 }
 
 func sep(sb *strings.Builder) {

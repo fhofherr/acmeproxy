@@ -5,24 +5,28 @@ import (
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReadCertificate(t *testing.T) {
 	tests := []struct {
 		name      string
+		keyType   certutil.KeyType
 		keyFile   string
 		certFile  string
 		pemEncode bool
 	}{
 		{
 			name:      "read PEM encoded certificate",
+			keyType:   certutil.RSA2048,
 			keyFile:   "rsa2048.pem",
 			certFile:  "certificate.pem",
 			pemEncode: true,
 		},
 		{
 			name:      "read ASN.1 DER encoded certificate",
+			keyType:   certutil.RSA2048,
 			keyFile:   "rsa2048.pem",
 			certFile:  "certificate.der",
 			pemEncode: false,
@@ -34,9 +38,9 @@ func TestReadCertificate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			commonName := "example.com"
 			certFile := filepath.Join("testdata", t.Name(), tt.certFile)
-			if *certutil.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				keyFile := filepath.Join("testdata", t.Name(), tt.keyFile)
-				certutil.CreateOpenSSLPrivateKey(t, keyFile)
+				certutil.CreateOpenSSLPrivateKey(t, tt.keyType, keyFile, true)
 				certutil.CreateOpenSSLSelfSignedCertificate(t, commonName, keyFile, certFile, tt.pemEncode)
 			}
 			_, err := certutil.ReadCertificateFromFile(certFile, tt.pemEncode)
@@ -48,18 +52,21 @@ func TestReadCertificate(t *testing.T) {
 func TestWriteCertificate(t *testing.T) {
 	tests := []struct {
 		name      string
+		keyType   certutil.KeyType
 		keyFile   string
 		certFile  string
 		pemEncode bool
 	}{
 		{
 			name:      "write PEM encoded certificate",
+			keyType:   certutil.RSA2048,
 			keyFile:   "rsa2048.pem",
 			certFile:  "certificate.pem",
 			pemEncode: true,
 		},
 		{
 			name:      "write ASN.1 DER encoded certificate",
+			keyType:   certutil.RSA2048,
 			keyFile:   "rsa2048.pem",
 			certFile:  "certificate.der",
 			pemEncode: false,
@@ -73,9 +80,9 @@ func TestWriteCertificate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			commonName := "example.com"
 			certFile := filepath.Join("testdata", t.Name(), tt.certFile)
-			if *certutil.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				keyFile := filepath.Join("testdata", t.Name(), tt.keyFile)
-				certutil.CreateOpenSSLPrivateKey(t, keyFile)
+				certutil.CreateOpenSSLPrivateKey(t, tt.keyType, keyFile, true)
 				certutil.CreateOpenSSLSelfSignedCertificate(t, commonName, keyFile, certFile, tt.pemEncode)
 			}
 			cert, err := certutil.ReadCertificateFromFile(certFile, tt.pemEncode)

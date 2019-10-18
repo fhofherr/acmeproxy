@@ -18,7 +18,7 @@ import (
 // Server is acmeproxy's public server.
 //
 // Server runs the ACME Agent responsible of obtaining certificates and storing
-// them for later retrieval. Clients connect to the server through its public
+// them for later retrieval. Users connect to the server through its public
 // API to retrieve their certificates.
 //
 // The zero value of Server represents a valid instance. Server may start
@@ -50,13 +50,16 @@ func (s *Server) Start() error {
 	}
 	s.initialize()
 
-	err := s.boltDB.Open()
-	if err != nil {
-		return errors.New(op, "open database", err)
+	if err := s.boltDB.Open(); err != nil {
+		return errors.New(op, err)
 	}
-	// TODO (fhofherr) the APIServer's Start method must return an error if something goes wrong.
-	s.httpAPIServer.Start()
-	s.registerAcmeproxyDomain()
+	go func() {
+		errors.Log(s.Logger, s.httpAPIServer.Start())
+	}()
+
+	if err := s.registerAcmeproxyDomain(); err != nil {
+		return errors.New(op, err)
+	}
 	return nil
 }
 
@@ -75,11 +78,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if !s.isStarted() {
 		return errors.New(op, "not started")
 	}
-	// TODO (fhofherr) the APIServer's Shutdown method must return an error if something goes wrong.
-	s.httpAPIServer.Shutdown(ctx)
-	// TODO (fhofherr) check the error returned by Close
-	s.boltDB.Close()
-	return nil
+
+	var errcol errors.Collection
+	errcol = errors.Append(errcol, s.httpAPIServer.Shutdown(ctx), op)
+	errcol = errors.Append(errcol, s.boltDB.Close(), op)
+	return errcol.ErrorOrNil()
 }
 
 // initialize initializes the un-exported fields of Server. It must not
@@ -89,13 +92,13 @@ func (s *Server) initialize() {
 		FilePath: filepath.Join(s.DataDir, "acmeproxy.db"),
 		FileMode: 0600,
 	}
+	acmeclient.InitializeLego(s.Logger)
 	acmeClient := &acmeclient.Client{
 		DirectoryURL: s.ACMEDirectoryURL,
-		HTTP01Solver: acmeclient.NewHTTP01Solver(),
 	}
 	s.acmeAgent = &acme.Agent{
 		Domains:      s.boltDB.DomainRepository(),
-		Clients:      s.boltDB.ClientRepository(),
+		Users:        s.boltDB.UserRepository(),
 		Certificates: acmeClient,
 		ACMEAccounts: acmeClient,
 	}
@@ -103,26 +106,19 @@ func (s *Server) initialize() {
 		Addr:   s.HTTPAPIAddr,
 		Logger: s.Logger,
 		Handler: httpapi.NewRouter(httpapi.Config{
-			Solver: acmeClient.HTTP01Solver,
+			Solver: &acmeClient.HTTP01Solver,
 		}),
 	}
 }
-func (s *Server) registerAcmeproxyDomain() {
-	tmpClientID := uuid.Must(uuid.NewRandom())
-	// TODO (fhofherr) make acmeproxy admin mail configurable
-	err := s.acmeAgent.RegisterClient(tmpClientID, "")
-	if err != nil {
-		log.Log(s.Logger,
-			"level", "error",
-			"error", err,
-			"message", "register default client")
+func (s *Server) registerAcmeproxyDomain() error {
+	const op errors.Op = "server/server.registerAcmeproxyDomain"
+
+	tmpUserID := uuid.Must(uuid.NewRandom())
+	if err := s.acmeAgent.RegisterUser(tmpUserID, ""); err != nil {
+		return errors.New(op, "register default user", err)
 	}
-	// TODO (fhofherr) make acmeproxy domain configurable
-	err = s.acmeAgent.RegisterDomain(tmpClientID, "www.example.com")
-	if err != nil {
-		log.Log(s.Logger,
-			"level", "error",
-			"error", err,
-			"message", fmt.Sprintf("register acmeproxy domain: %s", "www.example.com"))
+	if err := s.acmeAgent.RegisterDomain(tmpUserID, "www.example.com"); err != nil {
+		return errors.New(op, fmt.Sprintf("register acmeproxy domain: %s", "www.example.com"), err)
 	}
+	return nil
 }

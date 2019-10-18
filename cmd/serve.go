@@ -8,9 +8,10 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/server"
-	"github.com/fhofherr/golf/log"
+	"github.com/fhofherr/golf-zap/golfzap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const (
@@ -24,9 +25,9 @@ func init() {
 	serveCmd.Flags().String(flagHTTPAPIAddrName, ":http",
 		"TCP address the HTTP API listens on. [*]")
 
-	printErrorAndExit(1,
+	printErrorAndExit(
 		viper.BindPFlag(flagACMEDirectoryURLName, serveCmd.Flags().Lookup(flagACMEDirectoryURLName)))
-	printErrorAndExit(1,
+	printErrorAndExit(
 		viper.BindPFlag(flagHTTPAPIAddrName, serveCmd.Flags().Lookup(flagHTTPAPIAddrName)))
 	rootCmd.AddCommand(serveCmd)
 }
@@ -38,8 +39,8 @@ var serveCmd = &cobra.Command{
 Start the acmeproxy server.
 
 The acmeproxy server obtains certificates from an ACME compliant certificate
-authority. Depending on the operation mode requested by the client, it either
-stores the certificates, or directly passes them on to the client. If the
+authority. Depending on the operation mode requested by the user, it either
+stores the certificates, or directly passes them on to the user. If the
 acmeproxy server stores the certificates locally it takes care of renewing
 them before they expire.
 
@@ -50,15 +51,20 @@ environment variable corresponds to the flag name prefixed with 'ACMEPROXY_' and
 all hyphens replaced underscores. For example the name of the environment
 variable matching the flag '--http-api-addr' would be 'ACMEPROXY_HTTP_API_ADDR'.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO (fhofherr) configure Logger
-		var logger log.Logger
+		zapLogger, err := zap.NewProduction()
+		if err != nil {
+			printErrorAndExit(err)
+		}
+		defer zapLogger.Sync() //nolint: errcheck
+
+		logger := golfzap.New(zapLogger)
 
 		s := &server.Server{
 			ACMEDirectoryURL: viper.GetString(flagACMEDirectoryURLName),
 			HTTPAPIAddr:      viper.GetString(flagHTTPAPIAddrName),
 			Logger:           logger,
 		}
-		err := s.Start()
+		err = s.Start()
 		if err != nil {
 			fmt.Printf("%+v", err)
 			os.Exit(1)

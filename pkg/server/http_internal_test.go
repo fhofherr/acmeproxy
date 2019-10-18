@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 
 	"github.com/stretchr/testify/assert"
@@ -28,8 +29,12 @@ func TestStartNonEncryptedHTTPServer(t *testing.T) {
 			_, _ = w.Write([]byte(message))
 		}),
 	}
-	server.Start()
-	defer server.Shutdown(context.Background())
+	go func() {
+		assert.NoError(t, server.Start())
+	}()
+	defer func() {
+		assert.NoError(t, server.Shutdown(context.Background()))
+	}()
 	url := fmt.Sprintf("http://%s/", server.Addr)
 
 	var (
@@ -53,6 +58,8 @@ func TestStartNonEncryptedHTTPServer(t *testing.T) {
 }
 
 func TestShutdownOfUnstartedServer(t *testing.T) {
+	tmpl := errors.New(errors.Op("server/httpServer.Shutdown"), "not started")
 	server := &httpServer{}
-	server.Shutdown(context.Background())
+	err := server.Shutdown(context.Background())
+	assert.True(t, errors.Match(tmpl, err))
 }

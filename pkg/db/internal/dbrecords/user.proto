@@ -1,7 +1,7 @@
 syntax = "proto3";
 package dbrecords;
 
-message Client {
+message User {
     bytes id = 1;
     string accountURL = 2;
     AccountKey accountKey = 3;

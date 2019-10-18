@@ -14,7 +14,10 @@ import (
 func AssertCertificateValid(t *testing.T, domain string, issuerCerts, certificate []byte) {
 	roots := x509.NewCertPool()
 	roots.AppendCertsFromPEM(issuerCerts)
-	cert := parseCertificate(t, certificate)
+	cert, err := ParseCertificate(certificate, true)
+	if err != nil {
+		t.Fatal(err)
+	}
 	opts := x509.VerifyOptions{
 		DNSName: domain,
 		Roots:   roots,
@@ -26,24 +29,13 @@ func AssertCertificateValid(t *testing.T, domain string, issuerCerts, certificat
 
 // AssertKeyBelongsToCertificate asserts that the key belongs to the certificate.
 func AssertKeyBelongsToCertificate(t *testing.T, kt KeyType, certificate, key []byte) {
-	cert := parseCertificate(t, certificate)
+	cert, err := ParseCertificate(certificate, true)
+	if !assert.NoError(t, err) {
+		return
+	}
 	privateKey := parseSigner(t, kt, key)
 	assert.Equal(t, cert.PublicKey, privateKey.Public(),
 		"public key mismatch: key did not belong to certificate.")
-}
-
-// TODO(fhofherr) remove the *testing.T parameter and return error instead.
-// TODO(fhofherr) move this to another file and make it public.
-func parseCertificate(t *testing.T, certificate []byte) *x509.Certificate {
-	block, _ := pem.Decode(certificate)
-	if block == nil {
-		t.Fatal("Passed certificate was not PEM encoded")
-	}
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return cert
 }
 
 func parseSigner(t *testing.T, kt KeyType, key []byte) crypto.Signer {

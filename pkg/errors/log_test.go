@@ -1,11 +1,63 @@
 package errors_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/golf/log"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestLog(t *testing.T) {
+	tests := []struct {
+		name     string
+		logger   *log.TestLogger
+		err      error
+		nEntries int
+		level    string
+		message  string
+		trace    []errors.Op
+	}{
+		{
+			name:   "nil error",
+			logger: &log.TestLogger{},
+		},
+		{
+			name:     "plain error",
+			logger:   &log.TestLogger{},
+			err:      fmt.Errorf("some error"),
+			nEntries: 1,
+			level:    "error",
+			message:  fmt.Errorf("some error").Error(),
+		},
+		{
+			name:     "custom error",
+			logger:   &log.TestLogger{},
+			err:      errors.New(errors.Op("some op"), "some error"),
+			nEntries: 1,
+			level:    "error",
+			message:  "some error",
+			trace: []errors.Op{
+				errors.Op("some op"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			errors.Log(tt.logger, tt.err)
+			tt.logger.AssertHasMatchingLogEntries(t, tt.nEntries, func(e log.TestLogEntry) bool {
+				traceMatches := true
+				if tt.trace != nil {
+					traceMatches = assert.ObjectsAreEqual(tt.trace, e["trace"])
+				}
+				return e["level"] == tt.level && e["message"] == tt.message && traceMatches
+			})
+		})
+	}
+}
 
 func TestLogFunc(t *testing.T) {
 	tests := []struct {

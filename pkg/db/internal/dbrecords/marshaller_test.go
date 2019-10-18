@@ -8,6 +8,7 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
 	"github.com/fhofherr/acmeproxy/pkg/db/internal/dbrecords"
+	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,40 +61,40 @@ func TestMarshalAndUnmarshalString(t *testing.T) {
 	}
 }
 
-func TestMarshalAndUnmarshalClients(t *testing.T) {
+func TestMarshalAndUnmarshalUsers(t *testing.T) {
 	tests := []struct {
 		name     string
 		keyType  certutil.KeyType
 		keyFile  string
-		toSource func(*acme.Client) interface{}
+		toSource func(*acme.User) interface{}
 	}{
 		{
-			name:    "acme.Client",
+			name:    "acme.User",
 			keyType: certutil.EC256,
-			keyFile: "acme_client.pem",
-			toSource: func(c *acme.Client) interface{} {
+			keyFile: "acme_user.pem",
+			toSource: func(c *acme.User) interface{} {
 				return *c
 			},
 		},
 		{
-			name:    "pointer to acme.Client",
+			name:    "pointer to acme.User",
 			keyType: certutil.EC384,
-			keyFile: "pointer_to_acme_client.pem",
+			keyFile: "pointer_to_acme_user.pem",
 			// This is the default behavior. For clarity reasons this function
 			// re-states it.
-			toSource: func(c *acme.Client) interface{} {
+			toSource: func(c *acme.User) interface{} {
 				return c
 			},
 		},
 		{
-			name:    "client with ECDSA Key",
+			name:    "user with ECDSA Key",
 			keyType: certutil.EC256,
-			keyFile: "client_with_ecdsa_key.pem",
+			keyFile: "user_with_ecdsa_key.pem",
 		},
 		{
-			name:    "client with RSA Key",
+			name:    "user with RSA Key",
 			keyType: certutil.RSA2048,
-			keyFile: "client_with_rsa_key.pem",
+			keyFile: "user_with_rsa_key.pem",
 		},
 	}
 
@@ -103,24 +104,24 @@ func TestMarshalAndUnmarshalClients(t *testing.T) {
 			var source interface{}
 
 			keyFile := filepath.Join("testdata", t.Name(), tt.keyFile)
-			if *dbrecords.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				certutil.WritePrivateKeyForTesting(t, keyFile, tt.keyType, true)
 			}
 
-			client := &acme.Client{
+			user := &acme.User{
 				ID:         uuid.Must(uuid.NewRandom()),
 				Key:        certutil.KeyMust(certutil.ReadPrivateKeyFromFile(tt.keyType, keyFile, true)),
 				AccountURL: "https://example.com/some/account",
 			}
-			source = client
+			source = user
 			if tt.toSource != nil {
-				source = tt.toSource(client)
+				source = tt.toSource(user)
 			}
 			bs, err := dbrecords.MarshalBinary(source)
 			if !assert.NoError(t, err) {
 				return
 			}
-			target := &acme.Client{}
+			target := &acme.User{}
 			err = dbrecords.UnmarshalBinary(bs, target)
 			if !assert.NoError(t, err) {
 				return
@@ -155,7 +156,7 @@ func TestMarshalAndUnmarshalDomain(t *testing.T) {
 			domainName := "example.com"
 			keyFile := filepath.Join("testdata", t.Name(), "key.pem")
 			certFile := filepath.Join("testdata", t.Name(), "certificate.pem")
-			if *dbrecords.FlagUpdate {
+			if *testsupport.FlagUpdate {
 				pk := certutil.WritePrivateKeyForTesting(t, keyFile, certutil.RSA2048, true)
 				certutil.WriteCertificateForTesting(t, certFile, domainName, pk, true)
 			}
@@ -168,7 +169,7 @@ func TestMarshalAndUnmarshalDomain(t *testing.T) {
 				t.Fatal(err)
 			}
 			domain := &acme.Domain{
-				ClientID:    uuid.Must(uuid.NewRandom()),
+				UserID:      uuid.Must(uuid.NewRandom()),
 				Name:        domainName,
 				Certificate: certBytes,
 				PrivateKey:  keyBytes,
@@ -189,7 +190,7 @@ func TestMarshalAndUnmarshalDomain(t *testing.T) {
 
 func assertDomainObjectsEqual(t *testing.T, expected, actual interface{}) {
 	switch v := expected.(type) {
-	case acme.Client:
+	case acme.User:
 		assert.Equal(t, &v, actual)
 	default:
 		assert.Equal(t, expected, actual)

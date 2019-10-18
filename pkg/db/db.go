@@ -65,11 +65,11 @@ func (b *Bolt) Close() error {
 	return errors.Wrap(b.db.Close(), op)
 }
 
-// ClientRepository returns an instance of a client repository.
-func (b *Bolt) ClientRepository() acme.ClientRepository {
-	return &clientRepository{
+// UserRepository returns an instance of a user repository.
+func (b *Bolt) UserRepository() acme.UserRepository {
+	return &userRepository{
 		BoltDB:     b,
-		BucketName: "clients",
+		BucketName: "users",
 	}
 }
 

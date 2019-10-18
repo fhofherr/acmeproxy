@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -18,27 +19,34 @@ const (
 //
 // Use NewTestFixture to create a working instance.
 type TestFixture struct {
-	DataDir  string
-	Pebble   *testsupport.Pebble
-	Server   *Server
-	t        *testing.T
-	rmTmpDir func()
+	DataDir    string
+	Pebble     *testsupport.Pebble
+	Server     *Server
+	t          *testing.T
+	rmTmpDir   func()
+	resetCerts func()
 }
 
 // NewTestFixture creates a new test fixture ready for use.
 func NewTestFixture(t *testing.T) *TestFixture {
 	tmpDir, rmTmpDir := testsupport.CreateTmpDir(t)
+
 	pebble := testsupport.NewPebble(t, PebbleConfigJSON, DNSPort)
+	pebble.Start(t)
+
 	dataDir := filepath.Join(tmpDir, "data")
 	server := &Server{
-		DataDir: dataDir,
+		DataDir:          dataDir,
+		HTTPAPIAddr:      fmt.Sprintf("127.0.0.1:%d", pebble.HTTPPort()),
+		ACMEDirectoryURL: pebble.DirectoryURL(),
 	}
 	return &TestFixture{
-		Server:   server,
-		DataDir:  dataDir,
-		Pebble:   pebble,
-		t:        t,
-		rmTmpDir: rmTmpDir,
+		Server:     server,
+		DataDir:    dataDir,
+		Pebble:     pebble,
+		t:          t,
+		rmTmpDir:   rmTmpDir,
+		resetCerts: testsupport.SetLegoCACertificates(t, pebble.TestCert),
 	}
 }
 

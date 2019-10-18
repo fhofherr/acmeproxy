@@ -56,12 +56,23 @@ func NewPebble(t *testing.T, configJSON, dnsPort string) *Pebble {
 	}
 
 	pebble := findPebbleCommand(t, "pebble")
-	pebbleCMD := exec.Command(pebble, "-strict", "-config", configJSON, "-dnsserver", "127.0.0.1:"+dnsPort)
+	pebbleCMD := exec.Command(
+		pebble,
+		"-strict",
+		"-config",
+		configJSON,
+		"-dnsserver",
+		"127.0.0.1:"+dnsPort)
 	pebbleCMD.Env = []string{"PEBBLE_VA_NOSLEEP=1"}
 
 	challtestsrv := findPebbleCommand(t, "pebble-challtestsrv")
 	challtestsrvCMD := exec.Command(
-		challtestsrv, "-defaultIPv6", "", "-defaultIPv4", "127.0.0.1", "-http01", "", "-https01", "")
+		challtestsrv,
+		"-defaultIPv6", "",
+		"-defaultIPv4", "127.0.0.1",
+		"-dns01", ":"+dnsPort,
+		"-http01", "",
+		"-https01", "")
 	pebbleConfig := readPebbleConfig(t, configJSON)
 
 	pebbleCert := filepath.Join(pebbleDir, "test", "certs", "pebble.minica.pem")

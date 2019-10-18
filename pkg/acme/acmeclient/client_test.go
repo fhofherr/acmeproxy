@@ -1,11 +1,14 @@
 package acmeclient_test
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,8 +28,11 @@ func TestCreateAccount(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO(fhofherr) read from golden file instead
-			accountKey := certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256))
+			keyFile := filepath.Join("testdata", t.Name(), "key.pem")
+			if *testsupport.FlagUpdate {
+				certutil.WritePrivateKeyForTesting(t, keyFile, certutil.EC256, true)
+			}
+			accountKey := certutil.KeyMust(certutil.ReadPrivateKeyFromFile(certutil.EC256, keyFile, true))
 			accountURL, err := fx.Client.CreateAccount(accountKey, tt.email)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, accountURL)
@@ -47,12 +53,22 @@ func TestObtainCertificate(t *testing.T) {
 	defer tearDown()
 
 	tests := []struct {
-		acmeclient.CertificateRequest
-		name string
+		acme.CertificateRequest
+		name    string
+		errTmpl error
 	}{
 		{
+			name: "must provide at least one domain",
+			CertificateRequest: acme.CertificateRequest{
+				Email:      "john.doe+no.domain@example.com",
+				Bundle:     true,
+				AccountKey: certutil.KeyMust(certutil.NewPrivateKey(certutil.EC256)),
+			},
+			errTmpl: errors.New(errors.InvalidArgument),
+		},
+		{
 			name: "obtain certificate without account",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+RSA2048@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -61,7 +77,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain RSA4096 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+RSA4096@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -71,7 +87,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain RSA8192 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+RSA8192@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -81,7 +97,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain EC256 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+EC256@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -91,7 +107,7 @@ func TestObtainCertificate(t *testing.T) {
 		},
 		{
 			name: "obtain EC384 certificate",
-			CertificateRequest: acmeclient.CertificateRequest{
+			CertificateRequest: acme.CertificateRequest{
 				Email:      "john.doe+EC384@example.com",
 				Domains:    []string{"www.example.com"},
 				Bundle:     true,
@@ -105,7 +121,13 @@ func TestObtainCertificate(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			certInfo, err := fx.Client.ObtainCertificate(tt.CertificateRequest)
-			if !assert.NoError(t, err) {
+			if err != nil {
+				if tt.errTmpl == nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if !errors.Match(tt.errTmpl, err) {
+					t.Fatalf("Expected error matching %v; got: %v", tt.errTmpl, err)
+				}
 				return
 			}
 			assert.NotEmpty(t, certInfo.URL)
@@ -130,7 +152,7 @@ func TestObtainCertificateWithPreExistingAccount(t *testing.T) {
 	accountURL, err := fx.Client.CreateAccount(accountKey, "jane.doe@example.com")
 	assert.NoError(t, err)
 
-	req := acmeclient.CertificateRequest{
+	req := acme.CertificateRequest{
 		Email:      "jane.doe+RSA2048@example.com",
 		AccountURL: accountURL,
 		Domains:    []string{domain},

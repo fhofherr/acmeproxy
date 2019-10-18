@@ -9,9 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,21 +38,21 @@ func (ac *InMemoryAccountCreator) CreateAccount(key crypto.PrivateKey, email str
 }
 
 // AssertCreated asserts that this InMemoryAccountCreator created an account for
-// client.
-func (ac *InMemoryAccountCreator) AssertCreated(t *testing.T, email string, client Client) {
+// user.
+func (ac *InMemoryAccountCreator) AssertCreated(t *testing.T, email string, user User) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	if ac.accounts == nil {
 		t.Error("InMemoryAccountCreator has no accounts")
 		return
 	}
-	data, ok := ac.accounts[client.AccountURL]
+	data, ok := ac.accounts[user.AccountURL]
 	if !ok {
-		t.Errorf("InMemoryAccountCreator did not create an account for %s", client.AccountURL)
+		t.Errorf("InMemoryAccountCreator did not create an account for %s", user.AccountURL)
 		return
 	}
-	assert.Equalf(t, data.Key, client.Key, "Key of client %s did not match stored key", client.AccountURL)
-	assert.Equalf(t, data.Email, email, "Email of client %s did not match stored email", client.AccountURL)
+	assert.Equalf(t, data.Key, user.Key, "Key of user %s did not match stored key", user.AccountURL)
+	assert.Equalf(t, data.Email, email, "Email of user %s did not match stored email", user.AccountURL)
 }
 
 type fakeAccountData struct {
@@ -78,6 +77,8 @@ type InMemoryDomainRepository struct {
 // they should use the domain returned by UpdateDomain. If UpdateDomain returns
 // an error, the result of f is not stored in the repository.
 func (r *InMemoryDomainRepository) UpdateDomain(domainName string, f func(*Domain) error) (Domain, error) {
+	const op errors.Op = "acme/inMemoryDomainRepository.UpdateDomain"
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.domains == nil {
@@ -86,7 +87,7 @@ func (r *InMemoryDomainRepository) UpdateDomain(domainName string, f func(*Domai
 	domain := r.domains[domainName]
 	err := f(&domain)
 	if err != nil {
-		return Domain{}, errors.Wrapf(err, "update domain: %s", domainName)
+		return Domain{}, errors.New(op, fmt.Sprintf("update domain: %s", domainName), err)
 	}
 	r.domains[domainName] = domain
 	return domain, nil
@@ -94,59 +95,65 @@ func (r *InMemoryDomainRepository) UpdateDomain(domainName string, f func(*Domai
 
 // GetDomain retrieves a domain from the repository
 func (r *InMemoryDomainRepository) GetDomain(domainName string) (Domain, error) {
+	const op errors.Op = "acme/inMemoryDomainRepository.GetDomain"
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.domains == nil {
-		return Domain{}, DomainNotFound{DomainName: domainName}
+		return Domain{}, errors.New(op, errors.NotFound, fmt.Sprintf("domain name: %s", domainName))
 	}
 	if domain, ok := r.domains[domainName]; ok {
 		return domain, nil
 	}
-	return Domain{}, DomainNotFound{DomainName: domainName}
+	return Domain{}, errors.New(op, errors.NotFound, fmt.Sprintf("domain name: %s", domainName))
 }
 
-// InMemoryClientRepository is a simple in-memory implementation of
-// ClientRepository.
-type InMemoryClientRepository struct {
-	clients map[uuid.UUID]Client
-	mu      sync.Mutex
+// InMemoryUserRepository is a simple in-memory implementation of
+// UserRepository.
+type InMemoryUserRepository struct {
+	users map[uuid.UUID]User
+	mu    sync.Mutex
 }
 
-// UpdateClient saves or updates a client in the InMemoryClientRepository using
+// UpdateUser saves or updates a user in the InMemoryUserRepository using
 // the update function f.
 //
-// UpdateClient passes a pointer to a client object to f. If f does not return
-// an error, UpdateClient stores the updated client.
+// UpdateUser passes a pointer to a user object to f. If f does not return
+// an error, UpdateUser stores the updated user.
 //
-// Callers must not hold on to the *Client parameter passed to f. Rather
-// they should use the client returned by UpdateClient. If UpdateClient returns
+// Callers must not hold on to the *User parameter passed to f. Rather
+// they should use the user returned by UpdateUser. If UpdateUser returns
 // an error, the result of f is not stored in the repository.
-func (r *InMemoryClientRepository) UpdateClient(id uuid.UUID, f func(*Client) error) (Client, error) {
+func (r *InMemoryUserRepository) UpdateUser(id uuid.UUID, f func(*User) error) (User, error) {
+	const op errors.Op = "acme/inMemoryUserRepository.UpdateUser"
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.clients == nil {
-		r.clients = make(map[uuid.UUID]Client)
+	if r.users == nil {
+		r.users = make(map[uuid.UUID]User)
 	}
-	client := r.clients[id]
-	err := f(&client)
+	user := r.users[id]
+	err := f(&user)
 	if err != nil {
-		return Client{}, errors.Wrapf(err, "update client: %v", id)
+		return User{}, errors.New(op, fmt.Sprintf("update user: %v", id), err)
 	}
-	r.clients[id] = client
-	return client, nil
+	r.users[id] = user
+	return user, nil
 }
 
-// GetClient retrieves the client from the client repository
-func (r *InMemoryClientRepository) GetClient(id uuid.UUID) (Client, error) {
+// GetUser retrieves the user from the user repository
+func (r *InMemoryUserRepository) GetUser(id uuid.UUID) (User, error) {
+	const op errors.Op = "acme/inMemoryUserRepository.GetUser"
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.clients == nil {
-		return Client{}, ClientNotFound{ClientID: id}
+	if r.users == nil {
+		return User{}, errors.New(op, errors.NotFound, fmt.Sprintf("user id: %v", id))
 	}
-	if c, ok := r.clients[id]; ok {
+	if c, ok := r.users[id]; ok {
 		return c, nil
 	}
-	return Client{}, ClientNotFound{ClientID: id}
+	return User{}, errors.New(op, errors.NotFound, fmt.Sprintf("user id: %v", id))
 }
 
 // FileBasedCertificateObtainer reads certificates from files and returns them
@@ -159,9 +166,9 @@ type FileBasedCertificateObtainer struct {
 
 // ObtainCertificate reads CertFail and KeyFile and returns their contents.
 func (c *FileBasedCertificateObtainer) ObtainCertificate(
-	req acmeclient.CertificateRequest,
+	req CertificateRequest,
 ) (
-	*acmeclient.CertificateInfo,
+	*CertificateInfo,
 	error,
 ) {
 	cert := c.readCertFile()
@@ -169,7 +176,7 @@ func (c *FileBasedCertificateObtainer) ObtainCertificate(
 	if err != nil {
 		c.T.Fatalf("read test key: %v", err)
 	}
-	certInfo := &acmeclient.CertificateInfo{
+	certInfo := &CertificateInfo{
 		Certificate: cert,
 		PrivateKey:  key,
 	}
