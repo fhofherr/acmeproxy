@@ -26,12 +26,12 @@ var rootCmd = &cobra.Command{
 
 // Execute starts acmeproxy and executes the command given on the command line.
 func Execute() {
-	printErrorAndExit(1, rootCmd.Execute())
+	printErrorAndExit(rootCmd.Execute())
 }
 
-func printErrorAndExit(code int, err error) {
+func printErrorAndExit(err error) {
 	if err != nil {
 		fmt.Printf("%+v", err)
-		os.Exit(code)
+		os.Exit(1)
 	}
 }

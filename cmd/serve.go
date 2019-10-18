@@ -25,9 +25,9 @@ func init() {
 	serveCmd.Flags().String(flagHTTPAPIAddrName, ":http",
 		"TCP address the HTTP API listens on. [*]")
 
-	printErrorAndExit(1,
+	printErrorAndExit(
 		viper.BindPFlag(flagACMEDirectoryURLName, serveCmd.Flags().Lookup(flagACMEDirectoryURLName)))
-	printErrorAndExit(1,
+	printErrorAndExit(
 		viper.BindPFlag(flagHTTPAPIAddrName, serveCmd.Flags().Lookup(flagHTTPAPIAddrName)))
 	rootCmd.AddCommand(serveCmd)
 }
@@ -53,7 +53,7 @@ variable matching the flag '--http-api-addr' would be 'ACMEPROXY_HTTP_API_ADDR'.
 	Run: func(cmd *cobra.Command, args []string) {
 		zapLogger, err := zap.NewProduction()
 		if err != nil {
-			printErrorAndExit(1, err)
+			printErrorAndExit(err)
 		}
 		defer zapLogger.Sync() //nolint: errcheck
 
