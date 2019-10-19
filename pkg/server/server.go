@@ -53,9 +53,7 @@ func (s *Server) Start() error {
 	if err := s.boltDB.Open(); err != nil {
 		return errors.New(op, err)
 	}
-	go func() {
-		errors.Log(s.Logger, s.httpAPIServer.Start())
-	}()
+	go errors.LogFunc(s.Logger, s.httpAPIServer.Start)
 
 	if err := s.registerAcmeproxyDomain(); err != nil {
 		return errors.New(op, err)
