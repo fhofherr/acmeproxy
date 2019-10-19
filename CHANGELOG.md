@@ -8,15 +8,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2019-10-18
+
 ### Added
 
-* A package `github.com/fhofherr/acmeproxy/pkg/acme` which enables
-  `acmeproxy` to perform an HTTP01 challenge.
-  ([#2](https://github.com/fhofherr/acmeproxy/issues/2))
-* A `github.com/fhofherr/acmeproxy/pkg/acmetest` package containing
-  a type `Pebble`. It represents an instance of the
-  [pebble](https://github.com/letsencrypt/pebble) test server.
-* A local test environment using `docker-compose`. It runs `pebble` and
-  allows to execute any integration tests locally.
+* The `acmeproxy serve` command which starts `acmeproxy` in server mode.
+  The initial version of `acmeproxy` attempts to obtain a certificate
+  for `www.example.com` from the configured Let's encrypt CA. This
+  version of `acmeproxy` should thus **not** be started using the
+  official Let's Encrypt production environment.
+* `acmeproxy`'s tests start a local instance of
+  [pebble](https://github.com/letsencrypt/pebble). This instance is used
+  for integration testing against a "real" ACME CA.
+* `Dockerfile` which allows to create a docker image for `acmeproxy`.
+* The `scripts/test-env.sh` script which starts a local test environment
+  for `acmeproxy`. Within this test environment `acmeproxy` is executing
+  against pebble. Until `acmeproxy` stabilizes this should be the only
+  way to start `acmeproxy`.
 
-[Unreleased]: https://github.com/fhofherr/leproxy
+[Unreleased]: https://github.com/fhofherr/acmeproxy/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/fhofherr/acmeproxy/releases/tag/v0.1.0
