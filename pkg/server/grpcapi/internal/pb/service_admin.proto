@@ -1,0 +1,18 @@
+syntax = "proto3";
+package pb;
+
+import "pkg/server/grpcapi/internal/pb/user.proto";
+
+service Admin {
+
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse) {}
+
+}
+
+message RegisterUserRequest {
+  string email = 1;
+}
+
+message RegisterUserResponse {
+  User user = 1;
+}
