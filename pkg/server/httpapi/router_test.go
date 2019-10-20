@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/fhofherr/acmeproxy/pkg/httpapi"
+	"github.com/fhofherr/acmeproxy/pkg/server/httpapi"
 	"github.com/stretchr/testify/assert"
 )
 

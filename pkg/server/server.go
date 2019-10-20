@@ -10,7 +10,7 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
 	"github.com/fhofherr/acmeproxy/pkg/db"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
-	"github.com/fhofherr/acmeproxy/pkg/httpapi"
+	"github.com/fhofherr/acmeproxy/pkg/server/httpapi"
 	"github.com/fhofherr/golf/log"
 	"github.com/google/uuid"
 )
