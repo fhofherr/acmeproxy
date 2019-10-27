@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi"
 	"github.com/fhofherr/acmeproxy/pkg/internal/netutil"
-	"github.com/fhofherr/acmeproxy/pkg/server/grpcapi"
 	"github.com/stretchr/testify/assert"
 )
 

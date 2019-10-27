@@ -149,7 +149,7 @@ clean: ## Remove all intermediate directories and files
 PROTOBUF_SRC_FILES := $(shell find . -iname '*.proto')
 PROTOBUF_GO_FILES := $(patsubst %.proto,%.pb.go,$(PROTOBUF_SRC_FILES))
 
-pkg/server/grpcapi/internal/pb/%.pb.go: pkg/server/grpcapi/internal/pb/%.proto
+pkg/api/grpcapi/internal/pb/%.pb.go: pkg/api/grpcapi/internal/pb/%.proto
 	$(PROTOC) -I=$(PRJ_DIR) --go_out=plugins=grpc:$(PRJ_DIR) $<
 
 pkg/db/internal/dbrecords/%.pb.go: pkg/db/internal/dbrecords/%.proto

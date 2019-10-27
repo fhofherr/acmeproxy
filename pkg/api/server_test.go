@@ -1,4 +1,4 @@
-package server_test
+package api_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
-	"github.com/fhofherr/acmeproxy/pkg/server"
+	"github.com/fhofherr/acmeproxy/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 

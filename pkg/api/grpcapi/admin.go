@@ -3,7 +3,7 @@ package grpcapi
 import (
 	"context"
 
-	"github.com/fhofherr/acmeproxy/pkg/server/grpcapi/internal/pb"
+	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi/internal/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

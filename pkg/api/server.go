@@ -1,4 +1,4 @@
-package server
+package api
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/db"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/netutil"
-	"github.com/fhofherr/acmeproxy/pkg/server/httpapi"
+	"github.com/fhofherr/acmeproxy/pkg/api/httpapi"
 	"github.com/fhofherr/golf/log"
 	"github.com/google/uuid"
 )

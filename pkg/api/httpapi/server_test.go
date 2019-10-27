@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/fhofherr/acmeproxy/pkg/api/httpapi"
 	"github.com/fhofherr/acmeproxy/pkg/internal/netutil"
-	"github.com/fhofherr/acmeproxy/pkg/server/httpapi"
 
 	"github.com/stretchr/testify/assert"
 )

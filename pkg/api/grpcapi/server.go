@@ -6,8 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi/internal/pb"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
-	"github.com/fhofherr/acmeproxy/pkg/server/grpcapi/internal/pb"
 	"google.golang.org/grpc"
 )
 
