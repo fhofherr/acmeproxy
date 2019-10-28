@@ -6,6 +6,24 @@ import (
 	"strings"
 )
 
+// Is is a convenience wrapper for the Go standard library errors/Is function.
+// It allows all of acmeproxy to use this errors package instead of importing
+// one of the two packages under an alias.
+//
+// See https://godoc.org/errors#Is for documentation.
+func Is(err, target error) bool {
+	return errors.Is(err, target)
+}
+
+// As is a convenience wrapper for the Go standard library errors/As function.
+// It allows all of acmeproxy to use this errors package instead of importing
+// one of the two packages under an alias.
+//
+// See https://godoc.org/errors#As for documentation.
+func As(err error, target interface{}) bool {
+	return errors.As(err, target)
+}
+
 // Op encapsulates the name of an operation.
 //
 // It should contain the package and function name.
@@ -160,7 +178,7 @@ func (e *Error) Trace() []Op {
 
 	for cur != nil {
 		trace = appendTrace(trace, cur)
-		if !errors.As(cur.Err, &cur) {
+		if !As(cur.Err, &cur) {
 			break
 		}
 	}
@@ -195,7 +213,7 @@ func HasCause(err error, cause error) bool {
 		return true
 	}
 	var wrapper unwrapper
-	if errors.As(err, &wrapper) {
+	if As(err, &wrapper) {
 		return HasCause(wrapper.Unwrap(), cause)
 	}
 	return false
@@ -210,7 +228,7 @@ type unwrapper interface {
 func GetKind(err error) Kind {
 	var acpErr *Error
 
-	if err == nil || !errors.As(err, &acpErr) {
+	if err == nil || !As(err, &acpErr) {
 		return Unspecified
 	}
 	if acpErr.Kind == Unspecified {
@@ -241,7 +259,7 @@ func Match(tmpl, err error) bool {
 		// true if tmpl and err are nil
 		return tmpl == err
 	}
-	if !errors.As(tmpl, &tmplErr) || !errors.As(err, &actErr) {
+	if !As(tmpl, &tmplErr) || !As(err, &actErr) {
 		return tmpl.Error() == err.Error()
 	}
 	if tmplErr.Op != "" && tmplErr.Op != actErr.Op {
