@@ -101,7 +101,7 @@ func TestUpdateDomain_UpdateFunctionError(t *testing.T) {
 	_, err := domainRepository.UpdateDomain("example.com", func(d *acme.Domain) error {
 		return expectedError
 	})
-	assert.Truef(t, errors.HasCause(err, expectedError), "expected %v to have cause %v", err, expectedError)
+	assert.Truef(t, errors.Is(err, expectedError), "expected %v to have cause %v", err, expectedError)
 }
 
 func readFile(t *testing.T, filename string) []byte {

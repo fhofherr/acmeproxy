@@ -125,7 +125,7 @@ func TestObtainCertificate(t *testing.T) {
 				if tt.errTmpl == nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
-				if !errors.Match(tt.errTmpl, err) {
+				if !errors.Is(err, tt.errTmpl) {
 					t.Fatalf("Expected error matching %v; got: %v", tt.errTmpl, err)
 				}
 				return

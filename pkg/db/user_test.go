@@ -131,7 +131,7 @@ func TestUpdateUser(t *testing.T) {
 			},
 			assertions: func(t *testing.T, tt updateTest, _ *acme.User, err error) {
 				cause := errors.New("update function failed")
-				assert.Truef(t, errors.HasCause(err, cause), "expected %v to have cause %v", err, cause)
+				assert.Truef(t, errors.Is(err, cause), "expected %v to have cause %v", err, cause)
 			},
 		},
 	}
