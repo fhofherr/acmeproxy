@@ -100,7 +100,7 @@ func TestLogFunc(t *testing.T) {
 				if !ok {
 					return false
 				}
-				return e["level"] == "error" && errors.Match(errors.New(errors.Op("test-op"), "something failed"), err)
+				return e["level"] == "error" && errors.Is(err, errors.New(errors.Op("test-op"), "something failed"))
 			},
 		},
 	}
