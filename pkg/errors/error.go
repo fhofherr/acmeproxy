@@ -206,8 +206,37 @@ func (e *Error) Unwrap() error {
 	return e.Err
 }
 
+// Is checks if this error matches target.
+//
+// A positive match means that target is of type Error and that all non-zero
+// fields of target are equal to the respective fields of e.
+//
+// Is does not compare the Error.Err field. Use the Is function to compare
+// all errors in the chain.
+func (e *Error) Is(target error) bool {
+	if e == nil {
+		return target == nil
+	}
+	other, ok := target.(*Error)
+	if !ok {
+		return false
+	}
+	if other.Op != "" && other.Op != e.Op {
+		return false
+	}
+	if other.Kind != Unspecified && other.Kind != e.Kind {
+		return false
+	}
+	if other.Msg != "" && other.Msg != e.Msg {
+		return false
+	}
+	return true
+}
+
 // HasCause returns true if the error err has the error cause in its chain
 // of wrapped errors. It returns false otherwise.
+//
+// Deprecated: Is reports true if any error in the errors chain matches.
 func HasCause(err error, cause error) bool {
 	if reflect.DeepEqual(err, cause) {
 		return true
@@ -250,6 +279,8 @@ func IsKind(err error, kind Kind) bool {
 // equality.
 //
 // Match recursively checks tmpl.Err and err.Err if they are set.
+//
+// Deprecated: with Go 1.13 errors.Is should be used.
 func Match(tmpl, err error) bool {
 	var (
 		tmplErr *Error

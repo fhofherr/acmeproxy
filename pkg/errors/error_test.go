@@ -153,6 +153,147 @@ func TestError_Error(t *testing.T) {
 	}
 }
 
+func TestError_Is(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      *errors.Error
+		target   error
+		expected bool
+	}{
+		{
+			name:   "target is not an errors.Error",
+			err:    &errors.Error{},
+			target: fmt.Errorf("some error"),
+		},
+		{
+			name: "target is nil",
+			err:  &errors.Error{},
+		},
+		{
+			name:   "err is nil",
+			target: &errors.Error{},
+		},
+		{
+			name:     "both are nil",
+			expected: true,
+		},
+		{
+			name:     "err matches target",
+			err:      &errors.Error{},
+			target:   &errors.Error{},
+			expected: true,
+		},
+		{
+			name: "op does not match",
+			err: &errors.Error{
+				Op: "another op",
+			},
+			target: &errors.Error{
+				Op: "some op",
+			},
+		},
+		{
+			name: "op matches",
+			err: &errors.Error{
+				Op:  "some op",
+				Msg: "some message",
+			},
+			target: &errors.Error{
+				Op: "some op",
+			},
+			expected: true,
+		},
+		{
+			name: "kind does not match",
+			err: &errors.Error{
+				Kind: errors.Unspecified,
+			},
+			target: &errors.Error{
+				Kind: errors.NotFound,
+			},
+		},
+		{
+			name: "kind matches",
+			err: &errors.Error{
+				Op:   "some op",
+				Kind: errors.NotFound,
+			},
+			target: &errors.Error{
+				Kind: errors.NotFound,
+			},
+			expected: true,
+		},
+		{
+			name: "msg does not match",
+			err: &errors.Error{
+				Msg: "another message",
+			},
+			target: &errors.Error{
+				Msg: "some message",
+			},
+		},
+		{
+			name: "msg matches",
+			err: &errors.Error{
+				Msg:  "some message",
+				Kind: errors.NotFound,
+			},
+			target: &errors.Error{
+				Msg: "some message",
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.err.Is(tt.target))
+		})
+	}
+}
+
+func TestIs(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      *errors.Error
+		target   error
+		expected bool
+	}{
+		{
+			name:   "target does not match",
+			err:    &errors.Error{},
+			target: fmt.Errorf("some error"),
+		},
+		{
+			name:     "target matches exactly",
+			err:      &errors.Error{},
+			target:   &errors.Error{},
+			expected: true,
+		},
+		{
+			name: "nested error matches",
+			err: &errors.Error{
+				Msg: "another message",
+				Err: &errors.Error{
+					Msg: "some message",
+				},
+			},
+			target: &errors.Error{
+				Msg: "some message",
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, errors.Is(tt.err, tt.target))
+		})
+	}
+}
+
 func TestHasCause(t *testing.T) {
 	tests := []struct {
 		name     string
