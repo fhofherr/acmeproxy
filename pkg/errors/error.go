@@ -2,7 +2,6 @@ package errors
 
 import (
 	"errors"
-	"reflect"
 	"strings"
 )
 
@@ -233,25 +232,6 @@ func (e *Error) Is(target error) bool {
 	return true
 }
 
-// HasCause returns true if the error err has the error cause in its chain
-// of wrapped errors. It returns false otherwise.
-//
-// Deprecated: Is reports true if any error in the errors chain matches.
-func HasCause(err error, cause error) bool {
-	if reflect.DeepEqual(err, cause) {
-		return true
-	}
-	var wrapper unwrapper
-	if As(err, &wrapper) {
-		return HasCause(wrapper.Unwrap(), cause)
-	}
-	return false
-}
-
-type unwrapper interface {
-	Unwrap() error
-}
-
 // GetKind returns the Kind of the passed error, or Unspecified if the error
 // has no Kind or is not an acmeproxy error.
 func GetKind(err error) Kind {
@@ -269,41 +249,4 @@ func GetKind(err error) Kind {
 // IsKind checks if the error is of the expected Kind.
 func IsKind(err error, kind Kind) bool {
 	return GetKind(err) == kind
-}
-
-// Match returns true iff err matches the template error tmpl.
-//
-// Match checks that both tmpl and err are of type *Error. If this is the case
-// Match compares every non-zero field of tmpl with the respective field in err.
-// If this is not the case it checks the error string of tmpl and err for
-// equality.
-//
-// Match recursively checks tmpl.Err and err.Err if they are set.
-//
-// Deprecated: with Go 1.13 errors.Is should be used.
-func Match(tmpl, err error) bool {
-	var (
-		tmplErr *Error
-		actErr  *Error
-	)
-	if tmpl == nil || err == nil {
-		// true if tmpl and err are nil
-		return tmpl == err
-	}
-	if !As(tmpl, &tmplErr) || !As(err, &actErr) {
-		return tmpl.Error() == err.Error()
-	}
-	if tmplErr.Op != "" && tmplErr.Op != actErr.Op {
-		return false
-	}
-	if tmplErr.Kind != Unspecified && tmplErr.Kind != actErr.Kind {
-		return false
-	}
-	if tmplErr.Msg != "" && tmplErr.Msg != actErr.Msg {
-		return false
-	}
-	if tmplErr.Err != nil {
-		return Match(tmplErr.Err, actErr.Err)
-	}
-	return true
 }
