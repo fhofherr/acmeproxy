@@ -10,15 +10,11 @@ import (
 )
 
 func TestServer_StartCannotBeCalledTwice(t *testing.T) {
-	addrC := make(chan string)
-	server := &grpcapi.Server{}
-	go netutil.ListenAndServe(server, netutil.NotifyAddr(addrC)) // nolint: errcheck
-	defer server.Shutdown(context.Background())                  // nolint: errcheck
+	fx := grpcapi.NewServerTestFixture(t)
+	fx.Start()
+	defer fx.Stop()
 
-	// We don't care for the addr here. Calling GetAddr merely ensures the
-	// server is started and ready.
-	_ = netutil.GetAddr(t, addrC)
-	err := netutil.ListenAndServe(server)
+	err := netutil.ListenAndServe(fx.Server)
 	assert.Error(t, err)
 }
 
@@ -28,13 +24,11 @@ func TestServer_CannotShutdownUnstartedServer(t *testing.T) {
 }
 
 func TestServer_ShutdownClosesServerOnCanceledContext(t *testing.T) {
-	addrC := make(chan string)
-	server := &grpcapi.Server{}
-	go netutil.ListenAndServe(server, netutil.NotifyAddr(addrC)) // nolint: errcheck
-	_ = netutil.GetAddr(t, addrC)
+	fx := grpcapi.NewServerTestFixture(t)
+	fx.Start()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	err := server.Shutdown(ctx)
+	err := fx.Server.Shutdown(ctx)
 	assert.Error(t, err)
 }
