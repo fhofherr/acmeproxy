@@ -14,10 +14,10 @@ type adminServer struct {
 }
 
 func (s *adminServer) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
-	st, _ := status.
-		New(codes.NotFound, "not found").
-		WithDetails(&pb.ErrorDetails{Op: "some op"})
-	return nil, st.Err()
+	const op errors.Op = "grpcapi/adminServer.RegisterUser"
+
+	err := errors.New(op, errors.NotFound)
+	return nil, pb.ToGRPCStatusError(err)
 }
 
 type adminClient struct {
