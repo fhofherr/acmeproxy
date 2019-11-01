@@ -16,7 +16,7 @@ type adminServer struct {
 func (s *adminServer) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
 	st, _ := status.
 		New(codes.NotFound, "not found").
-		WithDetails(&pb.Error{Op: "some op"})
+		WithDetails(&pb.ErrorDetails{Op: "some op"})
 	return nil, st.Err()
 }
 
