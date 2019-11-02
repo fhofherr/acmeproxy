@@ -6,8 +6,6 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi/internal/pb"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type adminServer struct {
@@ -32,15 +30,7 @@ func (c *adminClient) RegisterUser(ctx context.Context, email string) (uuid.UUID
 	}
 	_, err := c.Client.RegisterUser(ctx, req)
 	if err != nil {
-		if st, ok := status.FromError(err); ok {
-			// TODO add proper translation from/to errors.Kind to codes.Code
-			kind := errors.Unspecified
-			if st.Code() == codes.NotFound {
-				kind = errors.NotFound
-			}
-			// TODO marshal details back into errors.Error
-			return uuid.UUID{}, errors.New(op, kind, st.Details())
-		}
+		err = pb.FromGRPCStatusError(err)
 		// TODO add a proper error message
 		return uuid.UUID{}, errors.New(op, err)
 	}

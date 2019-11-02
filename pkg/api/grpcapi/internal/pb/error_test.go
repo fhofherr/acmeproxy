@@ -12,19 +12,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestToGRPCStatusError(t *testing.T) {
+func TestGRPCErrorConversion(t *testing.T) {
 	tests := []struct {
-		name     string
-		err      error
-		expected *status.Status
+		name   string
+		err    error
+		status *status.Status
 	}{
 		{
 			name: "nil if err is nil",
 		},
 		{
-			name:     "internal error on unrecognized error",
-			err:      fmt.Errorf("some error"),
-			expected: status.New(codes.Internal, "some error"),
+			name:   "internal error on unrecognized error",
+			err:    fmt.Errorf("some error"),
+			status: status.New(codes.Internal, "some error"),
 		},
 		{
 			name: "not found error if kind is NotFound",
@@ -32,7 +32,7 @@ func TestToGRPCStatusError(t *testing.T) {
 				Kind: errors.NotFound,
 				Msg:  "some message",
 			},
-			expected: mustHaveDetails(
+			status: mustHaveDetails(
 				t,
 				status.New(codes.NotFound, "some message"),
 				&pb.ErrorDetails{
@@ -46,7 +46,7 @@ func TestToGRPCStatusError(t *testing.T) {
 				Kind: errors.Unspecified,
 				Msg:  "some message",
 			},
-			expected: mustHaveDetails(
+			status: mustHaveDetails(
 				t,
 				status.New(codes.Internal, "some message"),
 				&pb.ErrorDetails{
@@ -61,7 +61,7 @@ func TestToGRPCStatusError(t *testing.T) {
 				Kind: errors.NotFound,
 				Msg:  "some message",
 			},
-			expected: mustHaveDetails(
+			status: mustHaveDetails(
 				t,
 				status.New(codes.NotFound, "some message"),
 				&pb.ErrorDetails{
@@ -76,7 +76,7 @@ func TestToGRPCStatusError(t *testing.T) {
 				Op:   "some op",
 				Kind: errors.NotFound,
 			},
-			expected: mustHaveDetails(
+			status: mustHaveDetails(
 				t,
 				status.New(
 					codes.NotFound,
@@ -96,7 +96,7 @@ func TestToGRPCStatusError(t *testing.T) {
 				Msg: "some message",
 				Err: fmt.Errorf("wrapped error"),
 			},
-			expected: mustHaveDetails(
+			status: mustHaveDetails(
 				t,
 				status.New(codes.Internal, "some message"),
 				&pb.ErrorDetails{
@@ -115,7 +115,7 @@ func TestToGRPCStatusError(t *testing.T) {
 					Msg: "wrapped error",
 				},
 			},
-			expected: mustHaveDetails(
+			status: mustHaveDetails(
 				t,
 				status.New(codes.Internal, "some message"),
 				&pb.ErrorDetails{
@@ -133,13 +133,18 @@ func TestToGRPCStatusError(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			actual, ok := status.FromError(pb.ToGRPCStatusError(tt.err))
-			if !ok {
-				t.Fatalf("Failed to covert actual error to status")
-			}
-			assert.Equal(t, tt.expected, actual)
+			statusErr := pb.ToGRPCStatusError(tt.err)
+			assert.Equal(t, tt.status.Err(), statusErr)
+			err := pb.FromGRPCStatusError(statusErr)
+			assert.Equal(t, tt.err, err)
 		})
 	}
+}
+
+func TestFromGRPCStatusError_NonGRPCError(t *testing.T) {
+	err := fmt.Errorf("some error")
+	actual := pb.FromGRPCStatusError(err)
+	assert.Same(t, err, actual)
 }
 
 func mustHaveDetails(t *testing.T, st *status.Status, details ...proto.Message) *status.Status {

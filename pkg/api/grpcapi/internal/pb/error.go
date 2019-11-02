@@ -59,6 +59,61 @@ func ToGRPCStatusError(err error) error {
 	return st.Err()
 }
 
+// FromGRPCStatusError tries to translate the passed error to an acmeproxy
+// internal error as defined by errors.Error.
+//
+// If err is not an error defined by google.google.org/grpc/status the error
+// gets returned unchanged. Likewise, if err is nil, nil gets returned.
+//
+// If err is an error defined by google.google.org/grpc/status
+// FromGRPCStatusError translates it. It first converts err to a status.Status.
+// Then the following rules apply:
+//
+//     * if the status does not contain details, the code of the status is
+//       discarded. The message of the status is used as value for
+//       for a plain Go error.
+//
+//     * if the status contains details and those details are not of type
+//       ErrorDetails FromGRPCStatusError proceeds as above.
+//
+//     * if the details are of type ErrorDetails FromGRPCStatusError converts
+//       them to an errors.Error. In this case it discards the status code and
+//       message.
+//
+// In any case callers should wrap the returned error by using errors.New. This
+// allows to enrich the error with information specific to the call site.
+//
+// FromGRPCStatusError is the inverse operation of ToGRPCStatusError.
+func FromGRPCStatusError(err error) error {
+	if err == nil {
+		return nil
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+
+	var details *ErrorDetails
+	if !extractDetails(st, &details) {
+		return fmt.Errorf(st.Message())
+	}
+	return detailsToErr(details)
+}
+
+func extractDetails(st *status.Status, errDetails **ErrorDetails) bool {
+	details := st.Details()
+	// ToGRPCStatusError only adds one detail. If this status has zero or more
+	// than one details it is not from us.
+	if len(details) != 1 {
+		return false
+	}
+	ed, ok := details[0].(*ErrorDetails)
+	if ok {
+		*errDetails = ed
+	}
+	return ok
+}
+
 func codeFromErr(err *errors.Error) codes.Code {
 	switch err.Kind {
 	case errors.NotFound:
@@ -89,4 +144,22 @@ func errToDetails(err *errors.Error) *ErrorDetails {
 		}
 	}
 	return details
+}
+
+func detailsToErr(details *ErrorDetails) *errors.Error {
+	err := &errors.Error{
+		Op:   errors.Op(details.Op),
+		Kind: errors.Kind(details.Kind),
+		Msg:  details.Msg,
+	}
+	if details.Err == nil {
+		return err
+	}
+	switch errDetails := details.Err.(type) {
+	case *ErrorDetails_Plain:
+		err.Err = fmt.Errorf(errDetails.Plain)
+	case *ErrorDetails_Nested:
+		err.Err = detailsToErr(errDetails.Nested)
+	}
+	return err
 }
