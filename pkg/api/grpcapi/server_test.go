@@ -18,6 +18,12 @@ func TestServer_StartCannotBeCalledTwice(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestServer_CannotStartServerWithoutTLSConfig(t *testing.T) {
+	server := &grpcapi.Server{}
+	err := netutil.ListenAndServe(server)
+	assert.Error(t, err)
+}
+
 func TestServer_CannotShutdownUnstartedServer(t *testing.T) {
 	server := &grpcapi.Server{}
 	assert.Error(t, server.Shutdown(context.Background()))

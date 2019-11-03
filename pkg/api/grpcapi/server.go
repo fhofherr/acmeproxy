@@ -2,6 +2,7 @@ package grpcapi
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -9,13 +10,16 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi/internal/pb"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // Server represents the grpc API andler.
 type Server struct {
+	TLSConfig  *tls.Config
 	grpcServer *grpc.Server
 	once       sync.Once
 	started    uint32
+	initErr    error
 }
 
 // Serve accepts incomming connections.
@@ -24,18 +28,29 @@ type Server struct {
 func (s *Server) Serve(l net.Listener) error {
 	const op errors.Op = "grpcapi/server.Serve"
 
-	s.initialize()
+	if err := s.initialize(); err != nil {
+		return errors.New(op, err)
+	}
 	if !atomic.CompareAndSwapUint32(&s.started, 0, 1) {
 		return errors.New(op, "already started")
 	}
 	return errors.Wrap(s.grpcServer.Serve(l), op, "serve")
 }
 
-func (s *Server) initialize() {
+func (s *Server) initialize() error {
+	const op errors.Op = "grpcapi/server.initialize"
+
 	s.once.Do(func() {
-		s.grpcServer = grpc.NewServer()
+		if s.TLSConfig == nil {
+			s.initErr = errors.New(op, "no tls config provided")
+			return
+		}
+		creds := credentials.NewTLS(s.TLSConfig)
+		s.grpcServer = grpc.NewServer(grpc.Creds(creds))
 		pb.RegisterAdminServer(s.grpcServer, &adminServer{})
 	})
+
+	return s.initErr
 }
 
 // Shutdown performs a graceful shutdown of the Server.

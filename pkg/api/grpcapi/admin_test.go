@@ -12,11 +12,9 @@ import (
 func TestRegisterUser(t *testing.T) {
 	fx := grpcapi.NewServerTestFixture(t)
 	addr := fx.Start()
+	client := fx.NewClient(addr)
 
-	client, err := grpcapi.NewClient(addr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = client.RegisterUser(context.Background(), "john.doe@example.com")
+	_, err := client.RegisterUser(context.Background(), "john.doe@example.com")
+	t.Log(err)
 	assert.True(t, errors.Is(err, errors.New(errors.NotFound)))
 }

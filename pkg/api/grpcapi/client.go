@@ -1,11 +1,13 @@
 package grpcapi
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi/internal/pb"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // Client is used to connect to the Server using grpc.
@@ -15,10 +17,11 @@ type Client struct {
 }
 
 // NewClient creates a new Client connecting to the server listening on addr.
-func NewClient(addr string) (*Client, error) {
+func NewClient(addr string, tlsConfig *tls.Config) (*Client, error) {
 	const op errors.Op = "grpcapi/NewClient"
-	// TODO add proper transport security
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+
+	creds := credentials.NewTLS(tlsConfig)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return &Client{}, errors.New(op, fmt.Sprintf("dial: %s", addr), err)
 	}
