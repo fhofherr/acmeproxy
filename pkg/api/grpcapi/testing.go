@@ -12,16 +12,16 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 )
 
-// ServerTestFixture contains an instance of Server and provides the necessary methods
+// TestFixture contains an instance of Server and provides the necessary methods
 // to start and stop the server during testing.
-type ServerTestFixture struct {
+type TestFixture struct {
 	T         *testing.T
 	Server    *Server
 	TLSConfig *tls.Config
 }
 
-// NewServerTestFixture creates a new ServerTestFixture.
-func NewServerTestFixture(t *testing.T) *ServerTestFixture {
+// NewTestFixture creates a new TestFixture.
+func NewTestFixture(t *testing.T) *TestFixture {
 	keyFile := filepath.Join("testdata", "key.pem")
 	certFile := filepath.Join("testdata", "cert.pem")
 	if *testsupport.FlagUpdate {
@@ -38,7 +38,7 @@ func NewServerTestFixture(t *testing.T) *ServerTestFixture {
 		InsecureSkipVerify: true,
 		Certificates:       []tls.Certificate{cert},
 	}
-	return &ServerTestFixture{
+	return &TestFixture{
 		T:         t,
 		TLSConfig: tlsConfig,
 		Server: &Server{
@@ -49,7 +49,7 @@ func NewServerTestFixture(t *testing.T) *ServerTestFixture {
 
 // Start starts fx.Server in a separate go routine and returns the servers
 // address.
-func (fx *ServerTestFixture) Start() string {
+func (fx *TestFixture) Start() string {
 	addrC := make(chan string)
 	go func() {
 		err := netutil.ListenAndServe(fx.Server, netutil.NotifyAddr(addrC))
@@ -66,16 +66,16 @@ func (fx *ServerTestFixture) Start() string {
 	}
 }
 
-// Stop stops the previously started server used by the ServerTestFixture.
-func (fx *ServerTestFixture) Stop() {
+// Stop stops the previously started server used by the TestFixture.
+func (fx *TestFixture) Stop() {
 	if err := fx.Server.Shutdown(context.Background()); err != nil {
 		fx.T.Fatal(err)
 	}
 }
 
-// Create a new GRPCApi client connecting to the server contained in this
-// test fixture.
-func (fx *ServerTestFixture) NewClient(addr string) *Client {
+// NewClient creates a new GRPCApi client connecting to the server contained in
+// this test fixture.
+func (fx *TestFixture) NewClient(addr string) *Client {
 	client, err := NewClient(addr, fx.TLSConfig)
 	if err != nil {
 		fx.T.Fatal(err)

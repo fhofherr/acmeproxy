@@ -10,7 +10,7 @@ import (
 )
 
 func TestRegisterUser(t *testing.T) {
-	fx := grpcapi.NewServerTestFixture(t)
+	fx := grpcapi.NewTestFixture(t)
 	addr := fx.Start()
 	client := fx.NewClient(addr)
 

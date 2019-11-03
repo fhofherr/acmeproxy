@@ -10,7 +10,7 @@ import (
 )
 
 func TestServer_StartCannotBeCalledTwice(t *testing.T) {
-	fx := grpcapi.NewServerTestFixture(t)
+	fx := grpcapi.NewTestFixture(t)
 	fx.Start()
 	defer fx.Stop()
 
@@ -30,7 +30,7 @@ func TestServer_CannotShutdownUnstartedServer(t *testing.T) {
 }
 
 func TestServer_ShutdownClosesServerOnCanceledContext(t *testing.T) {
-	fx := grpcapi.NewServerTestFixture(t)
+	fx := grpcapi.NewTestFixture(t)
 	fx.Start()
 
 	ctx, cancel := context.WithCancel(context.Background())
