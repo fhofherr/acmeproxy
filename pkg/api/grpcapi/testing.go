@@ -32,7 +32,6 @@ func (fx *ServerTestFixture) Start() string {
 		if err != nil {
 			fx.T.Log(err)
 		}
-		close(addrC)
 	}()
 	select {
 	case addr := <-addrC:
