@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fhofherr/golf v0.2.0
 	github.com/fhofherr/golf-zap v0.2.0
 	github.com/go-acme/lego v2.7.0+incompatible
