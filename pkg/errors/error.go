@@ -45,6 +45,10 @@ const (
 	// that could not be found, or abort the operation.
 	NotFound
 
+	// Unauthorized signals that the caller of an operation was not allowed
+	// to execute this operation.
+	Unauthorized
+
 	// InvalidArgument shows that an opperation was called with one or more
 	// invalid arguments. This usually indicates a client error. An HTTP API
 	// might return a status 400 Bad Request response.
@@ -57,6 +61,8 @@ func (k Kind) String() string {
 		return ""
 	case NotFound:
 		return "not found"
+	case Unauthorized:
+		return "unauthorized"
 	case InvalidArgument:
 		return "invalid argument"
 	default:
