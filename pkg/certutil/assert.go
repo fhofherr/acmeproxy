@@ -51,7 +51,7 @@ func parseSigner(t *testing.T, kt KeyType, key []byte) crypto.Signer {
 	switch kt {
 	case RSA2048, RSA4096, RSA8192:
 		signer, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-	case EC256, EC384:
+	case EC256, EC384, EC521:
 		signer, err = x509.ParseECPrivateKey(block.Bytes)
 	default:
 		t.Fatalf("Unsupported key type: %v", kt)
