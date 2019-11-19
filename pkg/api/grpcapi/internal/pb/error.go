@@ -34,15 +34,17 @@ import (
 //
 // If err is nil ToGRPCStatusError returns nil.
 func ToGRPCStatusError(err error) error {
-	var acpErr *errors.Error
-
 	if err == nil {
 		return nil
 	}
+
+	code := codeFromErr(err)
+
+	var acpErr *errors.Error
 	if !errors.As(err, &acpErr) {
-		return status.New(codes.Internal, fmt.Sprintf("%v", err)).Err()
+		return status.New(code, fmt.Sprintf("%v", err)).Err()
 	}
-	code := codeFromErr(acpErr)
+
 	msg := acpErr.Msg
 	if msg == "" {
 		msg = fmt.Sprintf("%v", acpErr)
@@ -114,8 +116,8 @@ func extractDetails(st *status.Status, errDetails **ErrorDetails) bool {
 	return ok
 }
 
-func codeFromErr(err *errors.Error) codes.Code {
-	switch err.Kind {
+func codeFromErr(err error) codes.Code {
+	switch errors.GetKind(err) {
 	case errors.NotFound:
 		return codes.NotFound
 	case errors.Unauthorized:

@@ -56,6 +56,28 @@ func TestGRPCErrorConversion(t *testing.T) {
 			),
 		},
 		{
+			name: "Re-use kind of nested error",
+			err: &errors.Error{
+				Msg: "outer error",
+				Err: &errors.Error{
+					Kind: errors.NotFound,
+				},
+			},
+			status: mustHaveDetails(
+				t,
+				status.New(codes.NotFound, "outer error"),
+				&pb.ErrorDetails{
+					Kind: int32(errors.Unspecified),
+					Msg:  "outer error",
+					Err: &pb.ErrorDetails_Nested{
+						Nested: &pb.ErrorDetails{
+							Kind: int32(errors.NotFound),
+						},
+					},
+				},
+			),
+		},
+		{
 			name: "internal error on error of any other kind",
 			err: &errors.Error{
 				Kind: errors.Unspecified,
