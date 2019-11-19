@@ -41,6 +41,21 @@ func TestGRPCErrorConversion(t *testing.T) {
 				}),
 		},
 		{
+			name: "Unauthenticated if kind is Unauthorized",
+			err: &errors.Error{
+				Kind: errors.Unauthorized,
+				Msg:  "some message",
+			},
+			status: mustHaveDetails(
+				t,
+				status.New(codes.Unauthenticated, "some message"),
+				&pb.ErrorDetails{
+					Kind: int32(errors.Unauthorized),
+					Msg:  "some message",
+				},
+			),
+		},
+		{
 			name: "internal error on error of any other kind",
 			err: &errors.Error{
 				Kind: errors.Unspecified,

@@ -118,6 +118,8 @@ func codeFromErr(err *errors.Error) codes.Code {
 	switch err.Kind {
 	case errors.NotFound:
 		return codes.NotFound
+	case errors.Unauthorized:
+		return codes.Unauthenticated
 	default:
 		return codes.Internal
 	}
