@@ -3,11 +3,14 @@ package grpcapi
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/fhofherr/acmeproxy/pkg/api/auth"
 	"github.com/fhofherr/acmeproxy/pkg/certutil"
+	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/netutil"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 )
@@ -18,6 +21,8 @@ type TestFixture struct {
 	T         *testing.T
 	Server    *Server
 	TLSConfig *tls.Config
+	Token     string
+	Claims    *auth.Claims
 }
 
 // NewTestFixture creates a new TestFixture.
@@ -38,13 +43,31 @@ func NewTestFixture(t *testing.T) *TestFixture {
 		InsecureSkipVerify: true,
 		Certificates:       []tls.Certificate{cert},
 	}
-	return &TestFixture{
+	fx := &TestFixture{
 		T:         t,
 		TLSConfig: tlsConfig,
-		Server: &Server{
-			TLSConfig: tlsConfig,
-		},
 	}
+	server := &Server{
+		TLSConfig:   tlsConfig,
+		TokenParser: fx.parseToken,
+	}
+
+	fx.Server = server
+	return fx
+}
+
+func (fx *TestFixture) parseToken(token string) (*auth.Claims, error) {
+	const op errors.Op = "grpcapi/testFixture.parseToken"
+
+	if fx.Token == "" {
+		msg := "fx.Token is empty; rejecting all authentication attempts"
+		return nil, errors.New(op, errors.Unauthorized, msg)
+	}
+	if fx.Token != token {
+		msg := fmt.Sprintf("expected token '%s' got '%s'", fx.Token, token)
+		return nil, errors.New(op, errors.Unauthorized, msg)
+	}
+	return fx.Claims, nil
 }
 
 // Start starts fx.Server in a separate go routine and returns the servers
@@ -75,8 +98,9 @@ func (fx *TestFixture) Stop() {
 
 // NewClient creates a new GRPCApi client connecting to the server contained in
 // this test fixture.
-func (fx *TestFixture) NewClient(addr string) *Client {
-	client, err := NewClient(addr, fx.TLSConfig)
+func (fx *TestFixture) NewClient(addr, token string) *Client {
+	authToken := &AuthToken{Token: token}
+	client, err := NewClient(addr, authToken, fx.TLSConfig)
 	if err != nil {
 		fx.T.Fatal(err)
 	}

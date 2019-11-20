@@ -6,15 +6,14 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRegisterUser(t *testing.T) {
 	fx := grpcapi.NewTestFixture(t)
+	fx.Token = "valid"
 	addr := fx.Start()
-	client := fx.NewClient(addr)
+	client := fx.NewClient(addr, fx.Token)
 
 	_, err := client.RegisterUser(context.Background(), "john.doe@example.com")
-	t.Log(err)
-	assert.True(t, errors.Is(err, errors.New(errors.NotFound)))
+	errors.AssertMatches(t, errors.New(errors.NotFound), err)
 }

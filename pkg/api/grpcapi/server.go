@@ -9,17 +9,20 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi/internal/pb"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
+	"github.com/fhofherr/golf/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 // Server represents the grpc API andler.
 type Server struct {
-	TLSConfig  *tls.Config
-	grpcServer *grpc.Server
-	once       sync.Once
-	started    uint32
-	initErr    error
+	TokenParser TokenParser
+	TLSConfig   *tls.Config
+	Logger      log.Logger
+	grpcServer  *grpc.Server
+	once        sync.Once
+	started     uint32
+	initErr     error
 }
 
 // Serve accepts incomming connections.
@@ -41,12 +44,23 @@ func (s *Server) initialize() error {
 	const op errors.Op = "grpcapi/server.initialize"
 
 	s.once.Do(func() {
+		if s.TokenParser == nil {
+			s.initErr = errors.New(op, "no token parser provided")
+			return
+		}
 		if s.TLSConfig == nil {
 			s.initErr = errors.New(op, "no tls config provided")
 			return
 		}
+		unaryInterceptor := &unaryServerInterceptor{
+			TokenParser: s.TokenParser,
+			Logger:      s.Logger,
+		}
 		creds := credentials.NewTLS(s.TLSConfig)
-		s.grpcServer = grpc.NewServer(grpc.Creds(creds))
+		s.grpcServer = grpc.NewServer(
+			grpc.Creds(creds),
+			grpc.UnaryInterceptor(unaryInterceptor.intercept),
+		)
 		pb.RegisterAdminServer(s.grpcServer, &adminServer{})
 	})
 
