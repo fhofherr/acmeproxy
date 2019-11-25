@@ -16,13 +16,14 @@ import (
 
 // Server represents the grpc API andler.
 type Server struct {
-	TokenParser TokenParser
-	TLSConfig   *tls.Config
-	Logger      log.Logger
-	grpcServer  *grpc.Server
-	once        sync.Once
-	started     uint32
-	initErr     error
+	TokenParser    TokenParser
+	TLSConfig      *tls.Config
+	UserRegisterer UserRegisterer
+	Logger         log.Logger
+	grpcServer     *grpc.Server
+	once           sync.Once
+	started        uint32
+	initErr        error
 }
 
 // Serve accepts incomming connections.
@@ -52,6 +53,10 @@ func (s *Server) initialize() error {
 			s.initErr = errors.New(op, "no tls config provided")
 			return
 		}
+		if s.UserRegisterer == nil {
+			s.initErr = errors.New(op, "no user registerer provided")
+			return
+		}
 		unaryInterceptor := &unaryServerInterceptor{
 			TokenParser: s.TokenParser,
 			Logger:      s.Logger,
@@ -61,7 +66,9 @@ func (s *Server) initialize() error {
 			grpc.Creds(creds),
 			grpc.UnaryInterceptor(unaryInterceptor.intercept),
 		)
-		pb.RegisterAdminServer(s.grpcServer, &adminServer{})
+		pb.RegisterAdminServer(s.grpcServer, &adminServer{
+			UserRegisterer: s.UserRegisterer,
+		})
 	})
 
 	return s.initErr

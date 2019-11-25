@@ -13,16 +13,19 @@ import (
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/netutil"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
 )
 
 // TestFixture contains an instance of Server and provides the necessary methods
 // to start and stop the server during testing.
 type TestFixture struct {
-	T         *testing.T
-	Server    *Server
-	TLSConfig *tls.Config
-	Token     string
-	Claims    *auth.Claims
+	T                  *testing.T
+	Server             *Server
+	TLSConfig          *tls.Config
+	MockUserRegisterer *MockUserRegisterer
+	Token              string
+	Claims             *auth.Claims
 }
 
 // NewTestFixture creates a new TestFixture.
@@ -43,13 +46,17 @@ func NewTestFixture(t *testing.T) *TestFixture {
 		InsecureSkipVerify: true,
 		Certificates:       []tls.Certificate{cert},
 	}
+	mur := &MockUserRegisterer{}
+	mur.Test(t)
 	fx := &TestFixture{
-		T:         t,
-		TLSConfig: tlsConfig,
+		T:                  t,
+		TLSConfig:          tlsConfig,
+		MockUserRegisterer: mur,
 	}
 	server := &Server{
-		TLSConfig:   tlsConfig,
-		TokenParser: fx.parseToken,
+		TLSConfig:      tlsConfig,
+		TokenParser:    fx.parseToken,
+		UserRegisterer: mur,
 	}
 
 	fx.Server = server
@@ -105,4 +112,16 @@ func (fx *TestFixture) NewClient(addr, token string) *Client {
 		fx.T.Fatal(err)
 	}
 	return client
+}
+
+// MockUserRegisterer is a mock implementation of the UserRegisterer interface.
+type MockUserRegisterer struct {
+	mock.Mock
+}
+
+// RegisterUser registers the fact it has been called with the user
+// MockUserRegisterer.
+func (m *MockUserRegisterer) RegisterUser(userID uuid.UUID, email string) error {
+	args := m.Called(userID, email)
+	return args.Error(0)
 }

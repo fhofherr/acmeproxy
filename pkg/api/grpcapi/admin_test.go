@@ -3,14 +3,18 @@ package grpcapi_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fhofherr/acmeproxy/pkg/api/auth"
 	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-func TestRegisterUser(t *testing.T) {
+func TestRegisterUser_Authorization(t *testing.T) {
 	tests := []struct {
 		name   string
 		token  string
@@ -52,7 +56,6 @@ func TestRegisterUser(t *testing.T) {
 				},
 				Roles: []auth.Role{auth.Admin},
 			},
-			err: errors.New(errors.NotFound),
 		},
 	}
 
@@ -62,10 +65,26 @@ func TestRegisterUser(t *testing.T) {
 			fx := grpcapi.NewTestFixture(t)
 			fx.Token = "valid"
 			fx.Claims = tt.claims
+
 			addr := fx.Start()
 			defer fx.Stop()
+
 			client := fx.NewClient(addr, tt.token)
-			_, err := client.RegisterUser(context.Background(), "acmeproxy.user@example.com")
+
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			defer cancel()
+			email := "acmeproxy.user@example.com"
+
+			fx.MockUserRegisterer.
+				On("RegisterUser", mock.AnythingOfType("uuid.UUID"), email).
+				Return(nil)
+
+			userID, err := client.RegisterUser(ctx, email)
+			if err == nil {
+				fx.MockUserRegisterer.AssertCalled(
+					t, "RegisterUser", mock.AnythingOfType("uuid.UUID"), email)
+				assert.NotEqual(t, uuid.UUID{}, userID)
+			}
 			errors.AssertMatches(t, tt.err, err)
 		})
 	}

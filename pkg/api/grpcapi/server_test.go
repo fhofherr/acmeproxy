@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"testing"
+	"time"
 
 	"github.com/fhofherr/acmeproxy/pkg/api/auth"
 	"github.com/fhofherr/acmeproxy/pkg/api/grpcapi"
@@ -21,24 +22,53 @@ func TestServer_StartCannotBeCalledTwice(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestServer_CannotStartServerWithoutTLSConfig(t *testing.T) {
-	server := &grpcapi.Server{
-		TokenParser: func(string) (*auth.Claims, error) {
-			return nil, errors.New(errors.Unauthorized)
+func TestServer_CannotStartWithoutRequiredFields(t *testing.T) {
+	tests := []struct {
+		name   string
+		server *grpcapi.Server
+		err    error
+	}{
+		{
+			name: "cannot start without tls config",
+			server: &grpcapi.Server{
+				TokenParser: alwaysUnauthorized,
+			},
+			err: errors.New("no tls config provided"),
+		},
+		{
+			name: "cannot start server without token parser",
+			server: &grpcapi.Server{
+				TLSConfig: &tls.Config{},
+			},
+			err: errors.New("no token parser provided"),
+		},
+		{
+			name: "cannot start server without user registerer",
+			server: &grpcapi.Server{
+				TLSConfig:   &tls.Config{},
+				TokenParser: alwaysUnauthorized,
+			},
+			err: errors.New("no user registerer provided"),
 		},
 	}
-	tmpl := errors.New("no tls config provided")
-	err := netutil.ListenAndServe(server)
-	errors.AssertMatches(t, tmpl, err)
-}
 
-func TestServer_CannotStartServerWithoutTokenParser(t *testing.T) {
-	server := &grpcapi.Server{
-		TLSConfig: &tls.Config{},
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			errc := make(chan error)
+			go func() {
+				errc <- netutil.ListenAndServe(tt.server)
+			}()
+
+			select {
+			case err := <-errc:
+				errors.AssertMatches(t, tt.err, err)
+			case <-time.After(10 * time.Millisecond):
+				t.Error("server should not have started")
+				tt.server.Shutdown(context.Background()) // nolint: errcheck
+			}
+		})
 	}
-	tmpl := errors.New("no token parser provided")
-	err := netutil.ListenAndServe(server)
-	errors.AssertMatches(t, tmpl, err)
 }
 
 func TestServer_CannotShutdownUnstartedServer(t *testing.T) {
@@ -56,4 +86,8 @@ func TestServer_ShutdownClosesServerOnCanceledContext(t *testing.T) {
 	cancel()
 	err := fx.Server.Shutdown(ctx)
 	assert.Error(t, err)
+}
+
+func alwaysUnauthorized(string) (*auth.Claims, error) {
+	return nil, errors.New(errors.Unauthorized)
 }
