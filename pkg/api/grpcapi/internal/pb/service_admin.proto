@@ -5,14 +5,12 @@ import "pkg/api/grpcapi/internal/pb/user.proto";
 
 service Admin {
 
-  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse) {}
+  // RegisterUser registers a user with acmeproxy.
+  rpc RegisterUser(Email) returns (User) {}
 
 }
 
-message RegisterUserRequest {
-  string email = 1;
-}
-
-message RegisterUserResponse {
-  User user = 1;
+// Email wraps an email address
+message Email {
+  string addr = 1;
 }

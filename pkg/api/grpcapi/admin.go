@@ -24,7 +24,7 @@ type adminServer struct {
 	UserRegisterer UserRegisterer
 }
 
-func (s *adminServer) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
+func (s *adminServer) RegisterUser(ctx context.Context, email *pb.Email) (*pb.User, error) {
 	const op errors.Op = "grpcapi/adminServer.RegisterUser"
 
 	if err := auth.CheckRoles(ctx, auth.Admin); err != nil {
@@ -42,18 +42,14 @@ func (s *adminServer) RegisterUser(ctx context.Context, req *pb.RegisterUserRequ
 		err = errors.New(op, "binary marshal UUID")
 		return nil, pb.ToGRPCStatusError(err)
 	}
-	email := req.GetEmail()
 
 	// TODO test RegisterUser returns error
-	if err := s.UserRegisterer.RegisterUser(userID, email); err != nil {
+	if err := s.UserRegisterer.RegisterUser(userID, email.GetAddr()); err != nil {
 		return nil, pb.ToGRPCStatusError(err)
 	}
-	// TODO why did I wrap this into a RegisterUserResponse? Refactor?
-	return &pb.RegisterUserResponse{
-		User: &pb.User{
-			Id:    idBytes,
-			Email: email,
-		},
+	return &pb.User{
+		Id:    idBytes,
+		Email: email.GetAddr(),
 	}, nil
 }
 
@@ -64,16 +60,16 @@ type adminClient struct {
 func (c *adminClient) RegisterUser(ctx context.Context, email string) (uuid.UUID, error) {
 	const op errors.Op = "grpcapi/adminClient.RegisterUser"
 
-	req := &pb.RegisterUserRequest{
-		Email: email,
+	req := &pb.Email{
+		Addr: email,
 	}
-	res, err := c.Client.RegisterUser(ctx, req)
+	user, err := c.Client.RegisterUser(ctx, req)
 	if err != nil {
 		err = pb.FromGRPCStatusError(err)
 		// TODO add a proper error message
 		return uuid.UUID{}, errors.New(op, err)
 	}
-	idBytes := res.GetUser().GetId()
+	idBytes := user.GetId()
 	userID, err := uuid.FromBytes(idBytes)
 	if err != nil {
 		return uuid.UUID{}, errors.New(op, "unmarshal userID", err)
