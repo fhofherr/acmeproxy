@@ -22,7 +22,7 @@ func CreateOpenSSLPrivateKey(t *testing.T, kt KeyType, keyPath string, pemEncode
 		t.Fatalf("failed to create target directory: %v", err)
 	}
 	switch kt {
-	case EC256, EC384:
+	case EC256, EC384, EC521:
 		createOpenSSLECPrivateKey(t, kt, dir, keyFile, pemEncode)
 	case RSA2048, RSA4096, RSA8192:
 		createOpenSSLRSAPrivateKey(t, kt, dir, keyFile, pemEncode)
@@ -38,6 +38,8 @@ func createOpenSSLECPrivateKey(t *testing.T, kt KeyType, dir, keyFile string, pe
 		argv = append(argv, "ecparam", "-name", "prime256v1", "-genkey", "-noout")
 	case EC384:
 		argv = append(argv, "ecparam", "-name", "secp384r1", "-genkey", "-noout")
+	case EC521:
+		argv = append(argv, "ecparam", "-name", "secp521r1", "-genkey", "-noout")
 	default:
 		t.Fatal("unsupported key type")
 	}

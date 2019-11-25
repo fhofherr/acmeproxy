@@ -1,0 +1,12 @@
+syntax = "proto3";
+package pb;
+
+message ErrorDetails {
+  string op = 1;
+  int32 kind = 2;
+  string msg = 3;
+  oneof err {
+    string plain = 4;
+    ErrorDetails nested = 5;
+  }
+}

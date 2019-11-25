@@ -1,4 +1,4 @@
-package server_test
+package api_test
 
 import (
 	"context"
@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	server "github.com/fhofherr/acmeproxy/pkg/api"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
-	"github.com/fhofherr/acmeproxy/pkg/server"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +48,7 @@ func TestCannotStartServerTwice(t *testing.T) {
 	defer fx.Server.Shutdown(context.Background()) // nolint
 
 	err := fx.Server.Start()
-	assert.Error(t, err)
+	assert.True(t, errors.Is(err, errors.New("already started")))
 }
 
 func TestCannotReStartAStoppedServer(t *testing.T) {
@@ -62,7 +62,7 @@ func TestCannotReStartAStoppedServer(t *testing.T) {
 	assert.NoError(t, err)
 
 	err = fx.Server.Start()
-	assert.Error(t, err)
+	assert.True(t, errors.Is(err, errors.New("already started")))
 }
 
 func TestShutdownOfAnUnstartedServerHasNoEffect(t *testing.T) {
@@ -72,5 +72,5 @@ func TestShutdownOfAnUnstartedServerHasNoEffect(t *testing.T) {
 	defer fx.Close()
 
 	err := fx.Server.Shutdown(context.Background())
-	assert.True(t, errors.Match(errors.New("not started"), err))
+	assert.True(t, errors.Is(err, errors.New("not started")))
 }

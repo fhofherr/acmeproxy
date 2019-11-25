@@ -15,6 +15,7 @@ func TestKindToString(t *testing.T) {
 	}{
 		{errors.Unspecified, ""},
 		{errors.NotFound, "not found"},
+		{errors.Unauthorized, "unauthorized"},
 		{errors.InvalidArgument, "invalid argument"},
 		{errors.Kind(-1), "unknown kind"},
 	}
@@ -294,46 +295,6 @@ func TestIs(t *testing.T) {
 	}
 }
 
-func TestHasCause(t *testing.T) {
-	tests := []struct {
-		name     string
-		err      error
-		cause    error
-		expected bool
-	}{
-		{
-			name:     "equal errors",
-			err:      errors.New("Oops"),
-			cause:    errors.New("Oops"),
-			expected: true,
-		},
-		{
-			name:     "error wraps cause",
-			err:      errors.New("something else", errors.New("Oops")),
-			cause:    errors.New("Oops"),
-			expected: true,
-		},
-		{
-			name:  "distinct errors",
-			err:   errors.New("Oops"),
-			cause: errors.New("something else"),
-		},
-		{
-			name:  "cause not wrapped",
-			err:   errors.New("something else", errors.New("not the droids you are looking for")),
-			cause: errors.New("droids"),
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			actual := errors.HasCause(tt.err, tt.cause)
-			assert.Equal(t, tt.expected, actual)
-		})
-	}
-}
-
 func TestGetKind(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -361,102 +322,6 @@ func TestGetKind(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expected, errors.GetKind(tt.err))
 			assert.True(t, errors.IsKind(tt.err, tt.expected))
-		})
-	}
-}
-
-func TestMatch(t *testing.T) {
-	tests := []struct {
-		name        string
-		tmpl        error
-		err         error
-		shouldMatch bool
-	}{
-		{
-			name:        "err matches tmpl",
-			tmpl:        &errors.Error{},
-			err:         &errors.Error{},
-			shouldMatch: true,
-		},
-		{
-			name:        "error strings match",
-			tmpl:        fmt.Errorf("some error"),
-			err:         fmt.Errorf("some error"),
-			shouldMatch: true,
-		},
-		{
-			name: "tmpl is nil",
-			tmpl: &errors.Error{},
-		},
-		{
-			name: "err is nil",
-			err:  &errors.Error{},
-		},
-		{
-			name: "tmpl not an *errors.Error",
-			tmpl: fmt.Errorf("some other error"),
-			err:  &errors.Error{},
-		},
-		{
-			name: "err not an *errors.Error",
-			tmpl: &errors.Error{},
-			err:  fmt.Errorf("some other error"),
-		},
-		{
-			name: "op does not match",
-			tmpl: &errors.Error{
-				Op: "some op",
-			},
-			err: &errors.Error{
-				Op: "another op",
-			},
-		},
-		{
-			name: "kind does not match",
-			tmpl: &errors.Error{
-				Kind: errors.NotFound,
-			},
-			err: &errors.Error{
-				Kind: errors.Unspecified,
-			},
-		},
-		{
-			name: "msg does not match",
-			tmpl: &errors.Error{
-				Msg: "some message",
-			},
-			err: &errors.Error{
-				Msg: "another message",
-			},
-		},
-		{
-			name: "err string does not match",
-			tmpl: &errors.Error{
-				Err: fmt.Errorf("some error"),
-			},
-			err: &errors.Error{
-				Err: fmt.Errorf("another error"),
-			},
-		},
-		{
-			name: "linked error does not match",
-			tmpl: &errors.Error{
-				Err: &errors.Error{
-					Op: "some op",
-				},
-			},
-			err: &errors.Error{
-				Err: &errors.Error{
-					Op: "another op",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.shouldMatch, errors.Match(tt.tmpl, tt.err))
 		})
 	}
 }

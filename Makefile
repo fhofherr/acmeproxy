@@ -3,7 +3,7 @@
 
 # Get the directory which contains this Makefile.
 # See: http://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
-PRJ_DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+PRJ_DIR := $(patsubst %/,%,$(dir $(realpath $(firstword $(MAKEFILE_LIST)))))
 
 
 GIT := $(shell command -v git 2> /dev/null)
@@ -34,8 +34,7 @@ all: documentation lint test build
 #
 # -----------------------------------------------------------------------------
 PEBBLE_DIR := .pebble
-# PRJ_DIR ends with /. We therefore omit it here.
-ACMEPROXY_PEBBLE_DIR := $(PRJ_DIR)$(PEBBLE_DIR)
+ACMEPROXY_PEBBLE_DIR := $(PRJ_DIR)/$(PEBBLE_DIR)
 COVERAGE_FILE := .coverage.out
 
 .PHONY: test
@@ -77,6 +76,8 @@ pebble: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv
 test-update: $(PEBBLE_DIR)/pebble $(PEBBLE_DIR)/pebble-challtestsrv ## Execute all tests that have an -update flag defined.
 	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/acme -update
 	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/acme/acmeclient -update
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/api/auth -update
+	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/api/grpcapi -update
 	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/certutil -update
 	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db -update
 	ACMEPROXY_PEBBLE_DIR=$(ACMEPROXY_PEBBLE_DIR) $(GO) test ./pkg/db/internal/dbrecords -update
@@ -150,8 +151,11 @@ clean: ## Remove all intermediate directories and files
 PROTOBUF_SRC_FILES := $(shell find . -iname '*.proto')
 PROTOBUF_GO_FILES := $(patsubst %.proto,%.pb.go,$(PROTOBUF_SRC_FILES))
 
-%.pb.go: %.proto
-	$(PROTOC) -I=$(PWD) --go_out=$(PWD) $<
+pkg/api/grpcapi/internal/pb/%.pb.go: pkg/api/grpcapi/internal/pb/%.proto
+	$(PROTOC) -I=$(PRJ_DIR) --go_out=plugins=grpc:$(PRJ_DIR) $<
+
+pkg/db/internal/dbrecords/%.pb.go: pkg/db/internal/dbrecords/%.proto
+	$(PROTOC) -I=$(PRJ_DIR) --go_out=$(PRJ_DIR) $<
 
 .PHONY: pb
 pb: $(PROTOBUF_GO_FILES) ## Generate all *.pb.go files

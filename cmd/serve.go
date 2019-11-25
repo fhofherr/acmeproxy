@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
+	"github.com/fhofherr/acmeproxy/pkg/api"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
-	"github.com/fhofherr/acmeproxy/pkg/server"
 	"github.com/fhofherr/golf-zap/golfzap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -59,7 +59,7 @@ variable matching the flag '--http-api-addr' would be 'ACMEPROXY_HTTP_API_ADDR'.
 
 		logger := golfzap.New(zapLogger)
 
-		s := &server.Server{
+		s := &api.Server{
 			ACMEDirectoryURL: viper.GetString(flagACMEDirectoryURLName),
 			HTTPAPIAddr:      viper.GetString(flagHTTPAPIAddrName),
 			Logger:           logger,

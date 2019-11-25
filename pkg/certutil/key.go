@@ -29,6 +29,8 @@ const (
 	EC256 KeyType = iota
 	// EC384 represents an ECDSA key using an elliptic curve implementing P-384.
 	EC384
+	// EC521 represents an ECDSA key using an elliptic curve implementing P-521.
+	EC521
 	// RSA2048 represents an RSA key with a size of 2048 bits.
 	RSA2048
 	// RSA4096 represents an RSA key with a size of 4096 bits.
@@ -62,6 +64,8 @@ func determineECDSAKeyType(pk *ecdsa.PrivateKey) (KeyType, error) {
 		return EC256, nil
 	case "P-384":
 		return EC384, nil
+	case "P-521":
+		return EC521, nil
 	default:
 		return -1, errors.New(op, fmt.Sprintf("unsupported curve: %s", curveName))
 	}
@@ -98,6 +102,8 @@ func NewPrivateKey(kt KeyType) (crypto.PrivateKey, error) {
 		pk, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	case EC384:
 		pk, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	case EC521:
+		pk, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	case RSA2048:
 		pk, err = rsa.GenerateKey(rand.Reader, 2048)
 	case RSA4096:
@@ -124,7 +130,7 @@ func ReadPrivateKey(kt KeyType, r io.Reader, pemDecode bool) (crypto.PrivateKey,
 		err error
 	)
 	switch kt {
-	case EC256, EC384:
+	case EC256, EC384, EC521:
 		pk, err = readKey(r, pemDecode, parseECDSAKey)
 	case RSA2048, RSA4096, RSA8192:
 		pk, err = readKey(r, pemDecode, parseRSAKey)

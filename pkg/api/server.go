@@ -1,4 +1,4 @@
-package server
+package api
 
 import (
 	"context"
@@ -8,9 +8,10 @@ import (
 
 	"github.com/fhofherr/acmeproxy/pkg/acme"
 	"github.com/fhofherr/acmeproxy/pkg/acme/acmeclient"
+	"github.com/fhofherr/acmeproxy/pkg/api/httpapi"
 	"github.com/fhofherr/acmeproxy/pkg/db"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
-	"github.com/fhofherr/acmeproxy/pkg/httpapi"
+	"github.com/fhofherr/acmeproxy/pkg/internal/netutil"
 	"github.com/fhofherr/golf/log"
 	"github.com/google/uuid"
 )
@@ -28,7 +29,7 @@ type Server struct {
 	HTTPAPIAddr      string
 	DataDir          string
 	Logger           log.Logger
-	httpAPIServer    *httpServer
+	httpAPIServer    *httpapi.Server
 	acmeAgent        *acme.Agent
 	boltDB           *db.Bolt
 
@@ -53,7 +54,10 @@ func (s *Server) Start() error {
 	if err := s.boltDB.Open(); err != nil {
 		return errors.New(op, err)
 	}
-	go errors.LogFunc(s.Logger, s.httpAPIServer.Start)
+	go errors.LogFunc(s.Logger, func() error {
+		err := netutil.ListenAndServe(s.httpAPIServer, netutil.WithAddr(s.HTTPAPIAddr))
+		return errors.Wrap(err, op)
+	})
 
 	if err := s.registerAcmeproxyDomain(); err != nil {
 		return errors.New(op, err)
@@ -100,12 +104,8 @@ func (s *Server) initialize() {
 		Certificates: acmeClient,
 		ACMEAccounts: acmeClient,
 	}
-	s.httpAPIServer = &httpServer{
-		Addr:   s.HTTPAPIAddr,
-		Logger: s.Logger,
-		Handler: httpapi.NewRouter(httpapi.Config{
-			Solver: &acmeClient.HTTP01Solver,
-		}),
+	s.httpAPIServer = &httpapi.Server{
+		Solver: &acmeClient.HTTP01Solver,
 	}
 }
 func (s *Server) registerAcmeproxyDomain() error {

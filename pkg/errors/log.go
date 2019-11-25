@@ -19,6 +19,7 @@ func Log(logger log.Logger, err error) {
 		log.Log(logger, "level", "error", "message", err.Error(), "error", err)
 		return
 	}
+	// TODO determine "level" of error based on kind
 	log.Log(logger,
 		"level", "error",
 		"message", acpErr.Msg,
