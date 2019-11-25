@@ -1,6 +1,10 @@
 package auth
 
-import "context"
+import (
+	"context"
+
+	"github.com/fhofherr/acmeproxy/pkg/errors"
+)
 
 type ctxkey int
 
@@ -18,4 +22,16 @@ func AddClaimsToContext(ctx context.Context, cs *Claims) context.Context {
 func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
 	cs, ok := ctx.Value(keyClaims).(*Claims)
 	return cs, ok
+}
+
+// CheckRoles checks if the passed context contains claims  and if those claims
+// contain at least one of the expected roles.
+func CheckRoles(ctx context.Context, roles ...Role) error {
+	const op errors.Op = "auth/CheckRoles"
+
+	cs, ok := ClaimsFromContext(ctx)
+	if !ok {
+		return errors.New(op, errors.Unspecified, "no claims in context")
+	}
+	return errors.Wrap(cs.CheckRoles(roles...), op)
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto"
+	"fmt"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
@@ -42,11 +43,20 @@ func (a Algorithm) methodOk(method jwt.SigningMethod) bool {
 	}
 }
 
+// Role is the type of the role names in the JWT.
+type Role string
+
+const (
+	// Admin signals that the bearer of the token is an administrator
+	Admin Role = "admin"
+)
+
 // Claims represents the claims of a JWT token a valid client of acmeproxy
 // may present. In contains the JWT standard claims as well as additional
 // claims which might be necessary in the future.
 type Claims struct {
 	jwt.StandardClaims
+	Roles []Role `json:"roles,omitempty"`
 }
 
 // NewToken creates and signs the a JWT containing the passed claims.
@@ -114,4 +124,36 @@ func handleValidationError(op errors.Op, err error) error {
 		return vErr.Inner
 	}
 	return errors.New(op, err)
+}
+
+// CheckRoles checks if the passed claims object contains at least of the
+// expected roles. It returns an error of kind Unauthorized if none of the
+// expected roles could be found.
+func (c *Claims) CheckRoles(roles ...Role) error {
+	const op errors.Op = "auth/claims.CheckRoles"
+
+	if len(roles) == 0 {
+		return errors.New(op, errors.InvalidArgument, "no roles to check")
+	}
+	if c == nil {
+		return errors.New(op, errors.Unauthorized, "no token present")
+	}
+	if len(c.Roles) == 0 {
+		return errors.New(op, errors.Unauthorized, "no roles present")
+	}
+	rolesSet := make(map[Role]struct{}, len(roles))
+	for _, r := range roles {
+		rolesSet[r] = struct{}{}
+	}
+	foundRole := false
+	for _, r := range c.Roles {
+		if _, ok := rolesSet[r]; ok {
+			foundRole = true
+		}
+	}
+	if !foundRole {
+		msg := fmt.Sprintf("at least one role required: %v", roles)
+		return errors.New(op, errors.Unauthorized, msg)
+	}
+	return nil
 }

@@ -174,3 +174,52 @@ func publicKey(t *testing.T, key crypto.PrivateKey) crypto.PublicKey {
 	}
 	return s.Public()
 }
+
+func TestCheckRoles(t *testing.T) {
+	tests := []struct {
+		name          string
+		tokenRoles    []auth.Role
+		requiredRoles []auth.Role
+		err           error
+	}{
+		{
+			name:          "no roles in token",
+			requiredRoles: []auth.Role{auth.Admin},
+			err:           errors.New(errors.Unauthorized, "no roles present"),
+		},
+		{
+			name:       "no required roles passed",
+			tokenRoles: []auth.Role{auth.Admin},
+			err:        errors.New(errors.InvalidArgument),
+		},
+		{
+			name:          "none of the token roles matches",
+			tokenRoles:    []auth.Role{auth.Role("some role")},
+			requiredRoles: []auth.Role{auth.Role("another role")},
+			err:           errors.New(errors.Unauthorized, "at least one role required: [another role]"),
+		},
+		{
+			name:          "one of the token roles matches",
+			tokenRoles:    []auth.Role{auth.Role("some role"), auth.Admin},
+			requiredRoles: []auth.Role{auth.Admin},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			claims := &auth.Claims{
+				Roles: tt.tokenRoles,
+			}
+			err := claims.CheckRoles(tt.requiredRoles...)
+			errors.AssertMatches(t, tt.err, err)
+		})
+	}
+}
+
+func TestCheckRoles_NilCaller(t *testing.T) {
+	var claims *auth.Claims
+	template := errors.New(errors.Unauthorized, "no token present")
+	err := claims.CheckRoles(auth.Admin)
+	errors.AssertMatches(t, template, err)
+}
