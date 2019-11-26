@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	server "github.com/fhofherr/acmeproxy/pkg/api"
+	"github.com/fhofherr/acmeproxy/pkg/api"
 	"github.com/fhofherr/acmeproxy/pkg/errors"
 	"github.com/fhofherr/acmeproxy/pkg/internal/testsupport"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +15,7 @@ import (
 func TestStartServer(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 
-	fx := server.NewTestFixture(t)
+	fx := api.NewTestFixture(t)
 	defer fx.Close()
 	fx.MustStartServer(t)
 	defer fx.Server.Shutdown(context.Background()) // nolint
@@ -26,7 +26,7 @@ func TestStartServer(t *testing.T) {
 func TestFailsIfDBCannotBeOpened(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 
-	fx := server.NewTestFixture(t)
+	fx := api.NewTestFixture(t)
 	defer fx.Close()
 
 	// DataDir exists but is not writable
@@ -41,7 +41,7 @@ func TestFailsIfDBCannotBeOpened(t *testing.T) {
 func TestCannotStartServerTwice(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 
-	fx := server.NewTestFixture(t)
+	fx := api.NewTestFixture(t)
 	defer fx.Close()
 
 	fx.MustStartServer(t)
@@ -54,7 +54,7 @@ func TestCannotStartServerTwice(t *testing.T) {
 func TestCannotReStartAStoppedServer(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 
-	fx := server.NewTestFixture(t)
+	fx := api.NewTestFixture(t)
 	defer fx.Close()
 
 	fx.MustStartServer(t)
@@ -68,7 +68,7 @@ func TestCannotReStartAStoppedServer(t *testing.T) {
 func TestShutdownOfAnUnstartedServerHasNoEffect(t *testing.T) {
 	testsupport.SkipIfPebbleDisabled(t)
 
-	fx := server.NewTestFixture(t)
+	fx := api.NewTestFixture(t)
 	defer fx.Close()
 
 	err := fx.Server.Shutdown(context.Background())
