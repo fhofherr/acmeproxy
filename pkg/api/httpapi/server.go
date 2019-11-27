@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/fhofherr/acmeproxy/pkg/errors"
+	"github.com/fhofherr/golf/log"
 	"github.com/go-chi/chi"
 )
 
@@ -19,6 +20,7 @@ type HandlerFactory interface {
 // Server serves the public, non-encrypted part of acmeproxy's http API.
 type Server struct {
 	Solver     HandlerFactory // Presents solutions to HTTP01 challenges to ACME CA.
+	Logger     log.Logger
 	httpServer *http.Server
 	once       sync.Once
 }
@@ -71,12 +73,20 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) newRouter() http.Handler {
 	r := chi.NewRouter()
 
+	r.Get("/health", s.healthHandler)
 	r.Get(
 		"/.well-known/acme-challenge/{token}",
 		s.Solver.Handler(acmeChallengeParams).ServeHTTP,
 	)
 
 	return r
+}
+
+func (s *Server) healthHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("content-type", "application/health+json")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(`{"status": "pass"}`))
+	errors.Log(s.Logger, err)
 }
 
 func acmeChallengeParams(req *http.Request) map[string]string {
