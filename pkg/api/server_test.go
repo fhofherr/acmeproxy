@@ -2,6 +2,8 @@ package api_test
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,10 +19,18 @@ func TestStartServer(t *testing.T) {
 
 	fx := api.NewTestFixture(t)
 	defer fx.Close()
+
 	fx.MustStartServer(t)
 	defer fx.Server.Shutdown(context.Background()) // nolint
 
 	assert.FileExists(t, filepath.Join(fx.DataDir, "acmeproxy.db"), "database file not created")
+
+	resp, err := http.Get(fmt.Sprintf("http://%s/health", fx.Server.HTTPAPIAddr))
+	if err != nil {
+		t.Errorf("HTTPAPI not reachable: %v", err)
+	}
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestFailsIfDBCannotBeOpened(t *testing.T) {
